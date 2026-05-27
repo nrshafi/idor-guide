@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IDOR Cheatsheet — Desk Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0c11;
+  --bg-elev: #11151c;
+  --bg-code: #0d1117;
+  --panel: #141923;
+  --border: #1f2731;
+  --border-light: #2a3340;
+  --text: #e8ecf1;
+  --text-secondary: #a3acba;
+  --text-muted: #6b7585;
+  --accent: #ff6b35;
+  --accent-soft: rgba(255, 107, 53, 0.12);
+  --green: #7ee787;
+  --amber: #f5b14d;
+  --red: #ff5d6c;
+  --blue: #58a6ff;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  padding: 24px 28px 60px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Header */
+.head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 18px;
+  margin-bottom: 22px;
+}
+
+.head-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.head-title .accent { color: var(--accent); }
+
+.head-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+.head-meta {
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.6;
+}
+
+.head-meta a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+.head-meta a:hover { border-bottom-color: var(--accent); }
+
+.print-btn {
+  display: inline-block;
+  padding: 6px 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  margin-top: 6px;
+}
+
+/* Grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 700px)  { .grid { grid-template-columns: 1fr; } }
+
+/* Card */
+.card {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  break-inside: avoid;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.card-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.005em;
+}
+
+.card-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  font-style: italic;
+}
+
+/* Compact lists */
+.tight {
+  list-style: none;
+  padding: 0;
+}
+
+.tight li {
+  font-size: 12.5px;
+  padding: 3px 0;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  display: flex;
+  gap: 6px;
+}
+
+.tight li::before {
+  content: '▸';
+  color: var(--accent);
+  flex-shrink: 0;
+  font-size: 9px;
+  padding-top: 4px;
+}
+
+.tight li strong { color: var(--text); font-weight: 600; }
+
+/* Numbered list */
+.steps {
+  list-style: none;
+  counter-reset: stepnum;
+  padding: 0;
+}
+
+.steps li {
+  position: relative;
+  padding: 4px 0 4px 22px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.steps li::before {
+  counter-increment: stepnum;
+  content: counter(stepnum, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 5px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.steps li strong { color: var(--text); font-weight: 600; }
+
+/* Inline code */
+code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  padding: 0px 5px;
+  border-radius: 3px;
+  color: var(--green);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Code block */
+.code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin: 6px 0;
+  color: var(--text);
+  line-height: 1.55;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.kw  { color: #ff7b72; }
+.str { color: #a5d6ff; }
+.num { color: #79c0ff; }
+.id  { color: var(--accent); font-weight: 600; }
+.cmt { color: var(--text-muted); font-style: italic; }
+.hdr { color: #ffa657; }
+
+/* Table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  margin: 4px 0;
+}
+
+th, td {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  vertical-align: top;
+}
+
+th {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+td code { font-size: 10.5px; }
+
+tr:last-child td { border-bottom: none; }
+
+/* Pills */
+.pill {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.pill.g { color: var(--green); border-color: var(--green); }
+.pill.r { color: var(--red); border-color: var(--red); }
+.pill.a { color: var(--amber); border-color: var(--amber); }
+.pill.b { color: var(--blue); border-color: var(--blue); }
+.pill.o { color: var(--accent); border-color: var(--accent); }
+
+/* Checklist styling */
+.check li {
+  position: relative;
+  padding: 3px 0 3px 18px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+.check li::before {
+  content: '☐';
+  position: absolute;
+  left: 0;
+  top: 1px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.check li strong { color: var(--text); font-weight: 600; }
+
+/* Two-column compact inside a card */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 14px;
+}
+
+/* Final note bar */
+.notebar {
+  margin-top: 18px;
+  padding: 12px 16px;
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.notebar strong { color: var(--accent); font-weight: 700; }
+
+/* Footer */
+.foot {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.foot a { color: var(--accent); text-decoration: none; }
+
+/* ============================ */
+/* PRINT — flip to a clean B/W-friendly version */
+/* ============================ */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 12mm;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+    padding: 0;
+    font-size: 9.5pt;
+    line-height: 1.35;
+    max-width: none;
+  }
+
+  .head {
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+    border-bottom: 2px solid #000;
+  }
+
+  .head-title { font-size: 22pt; color: #000; }
+  .head-title .accent { color: #c2410c; }
+  .head-sub, .head-meta { color: #444; }
+  .head-meta a { color: #c2410c; }
+  .print-btn { display: none; }
+
+  .grid { gap: 8px; }
+
+  .card {
+    background: #fff;
+    border: 1px solid #999;
+    border-radius: 3px;
+    padding: 8px 10px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .card-header {
+    border-bottom: 1px solid #333;
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+  }
+  .card-num { color: #c2410c; }
+  .card-title { color: #000; font-size: 11pt; }
+  .card-sub { color: #555; }
+
+  .tight li, .steps li, .check li {
+    color: #222;
+    font-size: 8.5pt;
+    padding: 1.5px 0 1.5px 16px;
+  }
+  .tight li strong, .steps li strong, .check li strong { color: #000; }
+  .tight li::before { color: #c2410c; }
+  .steps li::before { color: #c2410c; }
+  .check li::before { color: #555; }
+
+  code {
+    background: #f4f4f4;
+    border: 1px solid #ccc;
+    color: #000;
+    font-size: 8pt;
+  }
+
+  .code {
+    background: #f7f7f7;
+    border: 1px solid #ccc;
+    color: #000;
+    font-size: 7.5pt;
+    padding: 5px 7px;
+  }
+  .code .kw, .code .num, .code .str, .code .hdr { color: #000; font-weight: 600; }
+  .code .id { color: #c2410c; }
+  .code .cmt { color: #666; }
+
+  table { font-size: 8pt; }
+  th, td { padding: 2px 5px; border-bottom: 1px solid #ccc; color: #222; }
+  th { color: #000; }
+
+  .pill {
+    background: #fff;
+    border: 1px solid #555;
+    color: #000;
+    font-size: 7pt;
+  }
+  .pill.g, .pill.r, .pill.a, .pill.b, .pill.o { color: #000; border-color: #555; }
+
+  .notebar {
+    background: #fff;
+    border: 1px solid #000;
+    border-left: 3px solid #000;
+    color: #000;
+    font-size: 8.5pt;
+  }
+  .notebar strong { color: #000; }
+
+  .foot { border-top: 1px solid #000; color: #444; }
+  .foot a { color: #c2410c; }
+}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div>
+    <div class="head-title">IDOR <span class="accent">Cheatsheet</span></div>
+    <div class="head-sub">// Desk Reference &middot; v.2026 &middot; OWASP 2025-aligned</div>
+  </div>
+  <div class="head-meta">
+    Full guide:<br>
+    <a href="https://nrshafi.github.io/idor-guide/" target="_blank" rel="noopener noreferrer">nrshafi.github.io/idor-guide</a><br>
+    <button class="print-btn" onclick="window.print()">↓ Print / Save PDF</button>
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- METHODOLOGY -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-num">01</span>
+      <span class="card-title">The Two-Account Loop</span>
+    </div>
+    <ol class="steps">
+      <li><strong>Create two accounts.</strong> A = attacker, B = victim. Same plan + cross-tenant if possible.</li>
+      <li><strong>Populate distinctively.</strong> Different names, files, settings. Visible deltas = fast confirmation.</li>
+      <li><strong>Use B normally.</strong> Walk every feature. Capture in Burp/Caido.</li>
+      <li><strong>Swap to A's session.</strong> Replay B's requests with A's token/cookie.</li>
+      <li><strong>Confirm.</strong> Success = A retrieves/mutates B's data.</li>
+    </ol>
+    <div class="card-sub" style="margin-top:8px;">Burp Match &amp; Replace auto-swaps the Authorization header. <strong style="color:var(--accent);">Autorize</strong> automates the entire loop.</div>
+  </div>
+
+  <!-- METHOD MATRIX -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-num">02</span>
+      <span class="card-title">Per-Endpoint Method Matrix</span>
+    </div>
+    <ul class="tight">
+      <li><span class="pill g">GET</span> &nbsp; reads victim data?</li>
+      <li><span class="pill b">POST</span> &nbsp; create resources under victim?</li>
+      <li><span class="pill a">PUT</span> / <span class="pill a">PATCH</span> &nbsp; mutate victim fields (email, role, reset token)?</li>
+      <li><span class="pill r">DELETE</span> &nbsp; delete victim resources?</li>
+      <li><span class="pill">HEAD</span> &nbsp; existence probe / header leakage?</li>
+      <li><span class="pill">OPTIONS</span> &nbsp; CORS preflight reveals hidden methods?</li>
+      <li><span class="pill">FOO</span> &nbsp; bogus method falls through to GET on some frameworks</li>
+    </ul>
+  </div>
+
+  <!-- WHERE IDS HIDE -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-num">03</span>
+      <span class="card-title">Where Identifiers Hide</span>
+    </div>
+    <table>
+      <tr><td><strong>Path</strong></td><td><code>/users/42/profile</code></td></tr>
+      <tr><td><strong>Query</strong></td><td><code>?orderId=9011</code></td></tr>
+      <tr><td><strong>Body</strong></td><td><code>{"target_user":42}</code></td></tr>
+      <tr><td><strong>Header</strong></td><td><code>X-Account-Id: 42</code></td></tr>
+      <tr><td><strong>JWT</strong></td><td><code>"sub":42,"tenant":7</code></td></tr>
+      <tr><td><strong>Cookie</strong></td><td><code>userid=42</code></td></tr>
+      <tr><td><strong>S3 / file</strong></td><td><code>/uploads/u42/file.pdf</code></td></tr>
+      <tr><td><strong>GraphQL var</strong></td><td><code>{user(id:42)}</code></td></tr>
+      <tr><td><strong>WebSocket</strong></td><td><code>{"resource":42}</code></td></tr>
+    </table>
+  </div>
+
+  <!-- ID FORMATS -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-num">04</span>
+      <span class="card-title">ID Formats &amp; Attack</span>
+    </div>
+    <table>
+      <tr><td><span class="pill g">int</span></td><td>enumerate freely</td></tr>
+      <tr><td><span class="pill a">UUIDv1</span></td><td>timestamp + MAC, predictable from one sample</td></tr>
+      <tr><td><span class="pill b">UUIDv4</span></td><td>random — hunt for leaks elsewhere</td></tr>
+      <tr><td><span class="pill a">base64</span></td><td>decode → enumerate → re-encode</td></tr>
+      <tr><td><span class="pill a">hash</span></td><td>often md5(uid) or md5(email), try inputs</td></tr>
+      <tr><td><span class="pill g">slug</span></td><td>OSINT usernames from comments / profiles</td></tr>
+      <tr><td><span class="pill r">snowflake</span></td><td>timestamp + machine — predictable in window</td></tr>
+    </table>
+  </div>
+
+  <!-- BYPASS: PATHS -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-num">05</span>
+      <span class="card-title">Path Normalization Bypasses</span>
+    </div>
+    <div class="card-sub">Baseline: <code>/api/users/7011</code></div>
+    <table>
+      <tr><td>Trailing slash</td><td><code>/api/users/7011/</code></td></tr>
+      <tr><td>Double slash</td><td><code>/api//users/7011</code></td></tr>
+      <tr><td>Dot-segment</td><td><code>/api/./users/7011</code></td></tr>
+      <tr><td>Traversal</td><td><code>/api/users/7000/../7011</code></td></tr>
+      <tr><td>Encoded slash</td><td><code>/api/users%2F7011</code></td></tr>
+      <tr><td>Double-encoded</td><td><code>/api/users%252F7011</code></td></tr>
+      <tr><td>Null byte</td><td><code>/api/users/7011%00</code></td></tr>
+      <tr><td>Zero-width space</td><td><code>/api/users/7011%E2%80%8B</code></td></tr>
+      <tr><td>Extension swap</td><td><code>/api/users/7011.json</code> / <code>.xml</code></td></tr>
+    </table>
+  </div>
+
+  <!-- BYPASS: HEADERS -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-num">06</span>
+      <span class="card-title">Header-Based Bypasses</span>
+    </div>
+    <div class="code"><span class="hdr">X-Original-URL</span>: /api/users/7011
+<span class="hdr">X-Rewrite-URL</span>: /api/users/7011
+<span class="hdr">X-Forwarded-For</span>: 127.0.0.1
+<span class="hdr">X-Forwarded-Host</span>: localhost
+<span class="hdr">X-Custom-IP-Authorization</span>: 127.0.0.1
+<span class="hdr">X-Originating-IP</span>: 127.0.0.1
+<span class="hdr">X-Remote-IP</span>: 127.0.0.1
+<span class="hdr">X-Client-IP</span>: 127.0.0.1
+<span class="hdr">X-Host</span>: localhost
+<span class="hdr">Referer</span>: https://target.com/admin/</div>
+  </div>
+
+  <!-- BYPASS: PARAMS -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-num">07</span>
+      <span class="card-title">Parameter Pollution &amp; Type Confusion</span>
+    </div>
+    <div class="code"><span class="cmt"># Two values, parser disagreement</span>
+?id=<span class="id">SELF</span>&amp;id=<span class="id">7011</span>
+?id=<span class="id">7011</span>&amp;id=<span class="id">SELF</span>
+
+<span class="cmt"># Array / object wrapping</span>
+{"user_id": <span class="id">7011</span>}            → 403
+{"user_id": [<span class="id">7011</span>]}          → 200
+{"user_id": [<span class="id">"SELF"</span>,<span class="id">7011</span>]}    → 200
+{"user_id": {"v": <span class="id">7011</span>}}     → 200
+
+<span class="cmt"># Type confusion</span>
+"<span class="id">7011</span>"   <span class="id">7011.0</span>   "<span class="id">007011</span>"   <span class="id">0x1B63</span></div>
+  </div>
+
+  <!-- BYPASS: ENDPOINT VARIANTS -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-num">08</span>
+      <span class="card-title">Endpoint Variants to Try</span>
+    </div>
+    <ul class="tight">
+      <li><strong>Version downgrade</strong> &nbsp; <code>v3 → v2 → v1 → internal → legacy</code></li>
+      <li><strong>Mobile-only</strong> &nbsp; <code>/api/mobile/</code>, <code>/api/ios/</code>, <code>/api/android/</code></li>
+      <li><strong>Subpath swap</strong> &nbsp; <code>/profile</code> → <code>/details</code>, <code>/info</code>, <code>/summary</code></li>
+      <li><strong>Batch / list</strong> &nbsp; <code>?ids[]=7011</code>, <code>/users/batch</code></li>
+      <li><strong>Export / report</strong> &nbsp; <code>/export</code>, <code>/print</code>, <code>/pdf</code>, <code>/download</code></li>
+      <li><strong>Content-type swap</strong> &nbsp; json → xml → form-data → urlencoded</li>
+    </ul>
+  </div>
+
+  <!-- GRAPHQL -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-num">09</span>
+      <span class="card-title">GraphQL Quick Reference</span>
+    </div>
+    <div class="card-sub">Introspection first. Then test every resolver with foreign IDs.</div>
+    <div class="code"><span class="cmt"># Alias-batched IDOR — 1 HTTP req, N records</span>
+<span class="kw">query</span> {
+  u1: user(id: <span class="id">7001</span>) { email phone }
+  u2: user(id: <span class="id">7002</span>) { email phone }
+  <span class="cmt">// ... 100+ aliases ...</span>
+  u100: user(id: <span class="id">7100</span>) { email phone }
+}</div>
+    <ul class="tight" style="margin-top:8px;">
+      <li><strong>Field-level auth gaps</strong> &nbsp; check nested resolvers (<code>user.orders</code>, <code>user.paymentMethod</code>)</li>
+      <li><strong>Mutations</strong> &nbsp; <code>updateUser</code>, <code>resetPassword</code>, <code>transferOwnership</code> with foreign IDs</li>
+      <li><strong>Hidden mutations</strong> &nbsp; introspection reveals admin ops accessible to low-priv</li>
+      <li><strong>Batch ops</strong> &nbsp; array of operations in one POST</li>
+    </ul>
+  </div>
+
+  <!-- ADVANCED -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-num">10</span>
+      <span class="card-title">Advanced &amp; Chains</span>
+    </div>
+    <ul class="tight">
+      <li><strong>IDOR → ATO</strong> &nbsp; mutate victim's email, trigger reset, take over</li>
+      <li><strong>IDOR + IDOR</strong> &nbsp; first leaks the second's required identifier</li>
+      <li><strong>IDOR + mass assignment</strong> &nbsp; add <code>role</code>, <code>tenant_id</code>, <code>is_admin</code> in body</li>
+      <li><strong>IDOR + race</strong> &nbsp; non-atomic ownership check; HTTP/2 single-packet</li>
+      <li><strong>IDOR + cache deception</strong> &nbsp; personalized response cached publicly</li>
+      <li><strong>WebSocket IDOR</strong> &nbsp; replay frames with foreign <code>resource_id</code></li>
+      <li><strong>Mobile-backend</strong> &nbsp; APK decompile + Frida pin-bypass for endpoints</li>
+      <li><strong>UUIDv1 prediction</strong> &nbsp; <code>guidtool</code>, predict from one sample</li>
+    </ul>
+  </div>
+
+  <!-- TOOLING -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-num">11</span>
+      <span class="card-title">Essential Tooling</span>
+    </div>
+    <div class="two-col">
+      <ul class="tight">
+        <li><strong>Burp</strong> / <strong>Caido</strong> &nbsp; primary proxy</li>
+        <li><strong>Autorize</strong> &nbsp; auth-bypass detection</li>
+        <li><strong>AuthMatrix</strong> &nbsp; role matrix testing</li>
+        <li><strong>Param Miner</strong> &nbsp; hidden headers/params</li>
+        <li><strong>InQL</strong> &nbsp; GraphQL schema browser</li>
+        <li><strong>Turbo Intruder</strong> &nbsp; race conditions</li>
+      </ul>
+      <ul class="tight">
+        <li><strong>ffuf</strong> &nbsp; endpoint fuzzer</li>
+        <li><strong>katana</strong> &nbsp; JS-aware crawler</li>
+        <li><strong>arjun</strong> &nbsp; param discovery</li>
+        <li><strong>jsluice</strong> &nbsp; JS bundle mining</li>
+        <li><strong>Clairvoyance</strong> &nbsp; GraphQL no-introspection</li>
+        <li><strong>nuclei</strong> &nbsp; templated scans</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- AI WORKFLOW -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-num">12</span>
+      <span class="card-title">AI-Assisted Workflow (2026)</span>
+    </div>
+    <ul class="tight">
+      <li><span class="pill g">use AI</span> &nbsp; extract endpoints from JS bundles &amp; OpenAPI</li>
+      <li><span class="pill g">use AI</span> &nbsp; scaffold safe PoC scripts (hard-cap N=5)</li>
+      <li><span class="pill g">use AI</span> &nbsp; draft report structure &amp; CVSS reasoning</li>
+      <li><span class="pill a">careful</span> &nbsp; bypass-payload brainstorming (verify each)</li>
+      <li><span class="pill r">manual</span> &nbsp; the two-account confirmation loop</li>
+      <li><span class="pill r">manual</span> &nbsp; deciding a bug exists</li>
+      <li><span class="pill r">never</span> &nbsp; paste victim PII / live tokens to AI providers</li>
+    </ul>
+    <div class="card-sub" style="margin-top:8px;">Pattern: 2 different models — one finds, one disproves. Glasswing-style.</div>
+  </div>
+
+  <!-- REPORT -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-num">13</span>
+      <span class="card-title">Report Structure</span>
+    </div>
+    <ol class="steps">
+      <li><strong>Summary</strong> &nbsp; one sentence, name the endpoint &amp; parameter</li>
+      <li><strong>Severity</strong> &nbsp; CVSS v3.1 vector with reasoning</li>
+      <li><strong>Steps to Reproduce</strong> &nbsp; both accounts, both tokens (redacted), exact request</li>
+      <li><strong>PoC</strong> &nbsp; 2 screenshots min; script ≤ 5 records</li>
+      <li><strong>Impact</strong> &nbsp; quantify (n users, PII scope, cross-tenant?)</li>
+      <li><strong>Remediation</strong> &nbsp; brief; <code>request.user.id == params.user_id</code></li>
+    </ol>
+  </div>
+
+  <!-- BOUNTY RANGES -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-num">14</span>
+      <span class="card-title">2024-2026 Bounty Bands</span>
+    </div>
+    <table>
+      <tr><td>Horizontal read · low-sens</td><td>$100 – 500</td></tr>
+      <tr><td>Horizontal read · full PII</td><td>$500 – 2.5K</td></tr>
+      <tr><td>Horizontal mutation</td><td>$1K – 3.5K</td></tr>
+      <tr><td>IDOR + ATO chain</td><td>$3K – 10K+</td></tr>
+      <tr><td>Cross-tenant SaaS breach</td><td>$5K – 25K+</td></tr>
+      <tr><td>Vertical (admin op)</td><td>$5K – 20K+</td></tr>
+      <tr><td>Mass extraction (alias batch)</td><td>$5K – 30K+</td></tr>
+    </table>
+  </div>
+
+  <!-- TRIAGER PUSHBACK -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-num">15</span>
+      <span class="card-title">Pre-empt Triager Pushback</span>
+    </div>
+    <table>
+      <tr><td>"intended — same team"</td><td>show cross-tenant works</td></tr>
+      <tr><td>"need victim UUID"</td><td>show where it leaks</td></tr>
+      <tr><td>"need victim email"</td><td>show harvest path</td></tr>
+      <tr><td>"low-sens fields"</td><td>enumerate every field returned</td></tr>
+      <tr><td>"duplicate"</td><td>timestamps + unique variant</td></tr>
+      <tr><td>"out of scope"</td><td>re-read scope, quote it</td></tr>
+    </table>
+  </div>
+
+  <!-- FINAL CHECKLIST -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-num">16</span>
+      <span class="card-title">Pre-flight Checklist</span>
+    </div>
+    <ul class="check">
+      <li>Two accounts live &amp; populated</li>
+      <li>Burp + Autorize, second token configured</li>
+      <li>Swap ID in <strong>every</strong> location (path / query / body / header / cookie)</li>
+      <li>Swap method (<strong>every</strong> verb, not just GET)</li>
+      <li>Try path-normalization variants on blocked endpoints</li>
+      <li>Try header-injection bypasses on blocked endpoints</li>
+      <li>Try array / object / type-confused parameter shapes</li>
+      <li>For UUID/random IDs: hunt where they leak publicly</li>
+      <li>GraphQL? &nbsp; introspect → alias → nested → mutations</li>
+      <li>Found one? &nbsp; <strong>check the chain</strong> (ATO / mass / cross-tenant)</li>
+      <li>Cap PoC at 5 records, never dump database</li>
+      <li>Re-read scope before reporting</li>
+    </ul>
+  </div>
+
+</div>
+
+<div class="notebar">
+  <strong>Scope discipline:</strong> Every technique on this card applies only to systems whose owners have <em>explicitly</em> authorized testing — bug bounty programs, VDPs, or written engagements. Out-of-scope testing is unauthorized access.
+</div>
+
+<div class="foot">
+  <span>IDOR.guide &middot; cheatsheet &middot; v.2026 &middot; OWASP 2025-aligned</span>
+  <span><a href="https://nrshafi.github.io/idor-guide/" target="_blank" rel="noopener noreferrer">nrshafi.github.io/idor-guide</a></span>
+</div>
+
+</body>
+</html>
