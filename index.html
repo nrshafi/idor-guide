@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IDOR Hunting — Zero to Advanced</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0c11;
+  --bg-elev: #11151c;
+  --bg-code: #0d1117;
+  --panel: #141923;
+  --border: #1f2731;
+  --border-light: #2a3340;
+  --text: #e8ecf1;
+  --text-secondary: #a3acba;
+  --text-muted: #6b7585;
+  --accent: #ff6b35;
+  --accent-soft: rgba(255, 107, 53, 0.12);
+  --green: #7ee787;
+  --green-soft: rgba(126, 231, 135, 0.12);
+  --amber: #f5b14d;
+  --amber-soft: rgba(245, 177, 77, 0.12);
+  --red: #ff5d6c;
+  --red-soft: rgba(255, 93, 108, 0.12);
+  --blue: #58a6ff;
+  --blue-soft: rgba(88, 166, 255, 0.12);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Layout */
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  max-width: 1440px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  padding: 40px 28px;
+  background: var(--bg);
+}
+
+.sidebar-brand {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.sidebar-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  margin-bottom: 36px;
+}
+
+.nav-section {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  margin: 24px 0 10px 0;
+  padding-bottom: 4px;
+}
+
+.nav-list { list-style: none; }
+.nav-list li { margin: 2px 0; }
+.nav-list a {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 10px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 13.5px;
+  border-radius: 5px;
+  transition: all 0.15s ease;
+  border-left: 2px solid transparent;
+}
+
+.nav-list a:hover {
+  color: var(--text);
+  background: var(--bg-elev);
+  border-left-color: var(--accent);
+}
+
+.nav-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* Main content */
+.content {
+  padding: 60px 80px 120px;
+  max-width: 900px;
+}
+
+/* Hero */
+.hero {
+  margin-bottom: 80px;
+  padding-bottom: 50px;
+  border-bottom: 1px solid var(--border);
+}
+
+.hero-meta {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+
+.hero-meta .dot { width: 4px; height: 4px; background: var(--accent); border-radius: 50%; }
+
+h1 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  margin-bottom: 24px;
+  color: var(--text);
+}
+
+h1 .accent { color: var(--accent); }
+
+.hero-sub {
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  max-width: 720px;
+  margin-bottom: 36px;
+}
+
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-elev);
+}
+
+.hero-stat {
+  padding: 20px 22px;
+  border-right: 1px solid var(--border);
+}
+.hero-stat:last-child { border-right: none; }
+
+.hero-stat-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+}
+
+.hero-stat-value {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.hero-stat-value .accent { color: var(--accent); }
+
+/* Progression bar */
+.progression {
+  display: flex;
+  align-items: center;
+  margin: 40px 0 0 0;
+  padding: 20px 24px;
+  background: linear-gradient(90deg, rgba(255, 107, 53, 0.08) 0%, rgba(255, 107, 53, 0.02) 100%);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.progression-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-right: 20px;
+  white-space: nowrap;
+}
+
+.progression-track {
+  flex: 1;
+  height: 2px;
+  background: var(--border-light);
+  border-radius: 2px;
+  position: relative;
+  margin: 0 4px;
+}
+
+.progression-track::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--green), var(--amber), var(--accent), var(--red));
+  border-radius: 2px;
+}
+
+.progression-stop {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  letter-spacing: 0.06em;
+}
+
+/* Section */
+section.section {
+  margin-bottom: 100px;
+  scroll-margin-top: 40px;
+}
+
+.section-header {
+  margin-bottom: 36px;
+}
+
+.section-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--accent);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+h2 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+
+.section-intro {
+  font-size: 17.5px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  max-width: 720px;
+}
+
+h3 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 48px 0 16px 0;
+  color: var(--text);
+}
+
+h3 .num {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--accent);
+  margin-right: 12px;
+  vertical-align: middle;
+  font-weight: 500;
+}
+
+h4 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 28px 0 10px 0;
+  color: var(--text);
+}
+
+p {
+  margin-bottom: 16px;
+  color: var(--text-secondary);
+}
+
+p.lead {
+  font-size: 17px;
+  color: var(--text);
+}
+
+strong { color: var(--text); font-weight: 600; }
+em { color: var(--text); font-style: italic; }
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s ease;
+}
+a:hover { border-bottom-color: var(--accent); }
+
+/* Inline code */
+code:not(pre code) {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.88em;
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  padding: 1px 7px;
+  border-radius: 4px;
+  color: var(--green);
+  font-weight: 500;
+}
+
+/* Code blocks */
+.code-block {
+  margin: 20px 0 24px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-code);
+}
+
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--bg-elev);
+  border-bottom: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.code-header-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 10px;
+}
+
+.code-header-tag.get { background: var(--green-soft); color: var(--green); }
+.code-header-tag.post { background: var(--blue-soft); color: var(--blue); }
+.code-header-tag.put { background: var(--amber-soft); color: var(--amber); }
+.code-header-tag.del { background: var(--red-soft); color: var(--red); }
+
+.code-block pre {
+  padding: 18px 20px;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+.tk-kw  { color: #ff7b72; }       /* HTTP method */
+.tk-str { color: #a5d6ff; }       /* strings */
+.tk-num { color: #79c0ff; }       /* numbers */
+.tk-id  { color: var(--accent); font-weight: 600; }
+.tk-cmt { color: var(--text-muted); font-style: italic; }
+.tk-fn  { color: #d2a8ff; }
+.tk-hdr { color: #ffa657; }       /* http header name */
+
+/* Callouts */
+.callout {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  background: var(--bg-elev);
+  border-radius: 6px;
+  padding: 18px 22px;
+  margin: 22px 0;
+}
+
+.callout-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.callout p:last-child { margin-bottom: 0; }
+
+.callout.info { border-left-color: var(--blue); }
+.callout.info .callout-title { color: var(--blue); }
+.callout.warn { border-left-color: var(--amber); }
+.callout.warn .callout-title { color: var(--amber); }
+.callout.danger { border-left-color: var(--red); }
+.callout.danger .callout-title { color: var(--red); }
+.callout.pro { border-left-color: var(--green); }
+.callout.pro .callout-title { color: var(--green); }
+
+/* Lists */
+ul.bullet, ol.bullet {
+  margin: 14px 0 22px;
+  padding-left: 0;
+  list-style: none;
+}
+
+ul.bullet li, ol.bullet li {
+  position: relative;
+  padding-left: 22px;
+  margin-bottom: 10px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+ul.bullet li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 11px;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+ol.bullet { counter-reset: olnum; }
+ol.bullet li::before {
+  counter-increment: olnum;
+  content: counter(olnum, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+}
+ol.bullet li { padding-left: 32px; }
+
+/* Two column grid (e.g., request/response side-by-side) */
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 20px 0 24px;
+}
+
+@media (max-width: 900px) {
+  .split { grid-template-columns: 1fr; }
+}
+
+/* IDOR diagram */
+.diagram {
+  margin: 28px 0;
+  padding: 28px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.diagram-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  margin-bottom: 22px;
+  text-align: center;
+}
+
+.idor-flow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: stretch;
+}
+
+.flow-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 22px;
+}
+
+.flow-card-tag {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 3px 9px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.flow-card.horizontal .flow-card-tag {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.flow-card.vertical .flow-card-tag {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.flow-card h5 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 17px;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.flow-card p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.flow-arrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--accent);
+  padding: 8px 10px;
+  background: var(--bg-code);
+  border-radius: 4px;
+  margin: 4px 0;
+}
+
+/* Checklist */
+.checklist {
+  margin: 24px 0;
+  padding: 24px 28px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.checklist-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checklist-title::before {
+  content: '◉';
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.checklist-items {
+  list-style: none;
+  padding: 0;
+}
+
+.checklist-items li {
+  padding: 8px 0 8px 28px;
+  position: relative;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border);
+  font-size: 14.5px;
+}
+
+.checklist-items li:first-child { border-top: none; }
+
+.checklist-items li::before {
+  content: '□';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  color: var(--text-muted);
+  font-size: 16px;
+}
+
+.checklist-items li strong { color: var(--text); }
+
+/* Tag pills */
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  margin-right: 4px;
+}
+
+.pill.green { background: var(--green-soft); border-color: transparent; color: var(--green); }
+.pill.red   { background: var(--red-soft);   border-color: transparent; color: var(--red); }
+.pill.amber { background: var(--amber-soft); border-color: transparent; color: var(--amber); }
+.pill.blue  { background: var(--blue-soft);  border-color: transparent; color: var(--blue); }
+.pill.accent { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+
+/* Table */
+.table-wrap {
+  margin: 20px 0 28px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  background: var(--bg-elev);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+td { color: var(--text-secondary); }
+td code { font-size: 13px; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+/* Resource cards */
+.resources {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin: 24px 0;
+}
+
+@media (max-width: 760px) {
+  .resources { grid-template-columns: 1fr; }
+}
+
+.res-card {
+  padding: 16px 18px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.res-card:hover {
+  border-color: var(--accent);
+  background: var(--bg);
+}
+
+.res-card-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+}
+
+.res-card-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.res-card-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Footer */
+.footer {
+  border-top: 1px solid var(--border);
+  padding-top: 40px;
+  margin-top: 80px;
+  color: var(--text-muted);
+  font-size: 13.5px;
+}
+
+.footer-warn {
+  background: var(--red-soft);
+  border: 1px solid var(--red);
+  border-radius: 8px;
+  padding: 18px 22px;
+  margin-bottom: 24px;
+}
+
+.footer-warn-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--red);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.footer-warn p { color: var(--text); margin-bottom: 0; font-size: 14px; }
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 24px; }
+  .content { padding: 40px 28px 80px; }
+  h1 { font-size: 44px; }
+  h2 { font-size: 32px; }
+  .hero-stats { grid-template-columns: repeat(2, 1fr); }
+  .hero-stat:nth-child(2) { border-right: none; }
+  .hero-stat:nth-child(1), .hero-stat:nth-child(2) { border-bottom: 1px solid var(--border); }
+}
+
+@media (max-width: 600px) {
+  h1 { font-size: 36px; }
+  h2 { font-size: 26px; }
+  .content { padding: 32px 20px 60px; }
+  .hero-stats { grid-template-columns: 1fr; }
+  .hero-stat { border-right: none; border-bottom: 1px solid var(--border); }
+  .hero-stat:last-child { border-bottom: none; }
+  .idor-flow { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- SIDEBAR NAV -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">// IDOR.guide</div>
+    <div class="sidebar-tag">v.2026 // updated</div>
+
+    <div class="nav-section">Foundations</div>
+    <ul class="nav-list">
+      <li><a href="#fundamentals"><span class="nav-num">00</span> Fundamentals</a></li>
+      <li><a href="#recon"><span class="nav-num">01</span> Recon &amp; Targets</a></li>
+      <li><a href="#candidates"><span class="nav-num">02</span> Identifying Candidates</a></li>
+    </ul>
+
+    <div class="nav-section">Hunting</div>
+    <ul class="nav-list">
+      <li><a href="#methodology"><span class="nav-num">03</span> Testing Methodology</a></li>
+      <li><a href="#bypasses"><span class="nav-num">04</span> Bypass Techniques</a></li>
+      <li><a href="#graphql"><span class="nav-num">05</span> GraphQL IDOR</a></li>
+    </ul>
+
+    <div class="nav-section">Advanced</div>
+    <ul class="nav-list">
+      <li><a href="#advanced"><span class="nav-num">06</span> Advanced Techniques</a></li>
+      <li><a href="#tooling"><span class="nav-num">07</span> Tooling &amp; Automation</a></li>
+      <li><a href="#ai"><span class="nav-num">08</span> AI-Assisted Hunting</a></li>
+    </ul>
+
+    <div class="nav-section">Closeout</div>
+    <ul class="nav-list">
+      <li><a href="#reporting"><span class="nav-num">09</span> Writing the Report</a></li>
+      <li><a href="#resources"><span class="nav-num">10</span> Practice &amp; Resources</a></li>
+    </ul>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="content">
+
+    <!-- HERO -->
+    <header class="hero">
+      <div class="hero-meta">
+        <span>Bug Bounty Field Guide</span>
+        <span class="dot"></span>
+        <span>Updated 2026 · OWASP 2025-aligned</span>
+        <span class="dot"></span>
+        <span>~55 min read</span>
+      </div>
+
+      <h1>IDOR&nbsp;Hunting<br><span class="accent">Zero&nbsp;to&nbsp;Advanced</span></h1>
+
+      <p class="hero-sub">
+        A practical, opinionated field guide to finding <strong>Insecure Direct Object References</strong> in real bug bounty programs. From your first <code>?id=123</code> to chained GraphQL alias-batch extractions — with current 2024-2025 techniques, real disclosed reports, and the modern tooling stack.
+      </p>
+
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-label">OWASP rank</div>
+          <div class="hero-stat-value"><span class="accent">A01</span> &middot; 2025</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-label">API rank</div>
+          <div class="hero-stat-value"><span class="accent">API1</span> &middot; BOLA</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-label">CWE</div>
+          <div class="hero-stat-value">CWE-639<br>CWE-284</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-label">Typical severity</div>
+          <div class="hero-stat-value">Med &rarr; <span class="accent">Critical</span></div>
+        </div>
+      </div>
+
+      <div class="progression">
+        <div class="progression-label">Path</div>
+        <span class="progression-stop">Zero</span>
+        <div class="progression-track"></div>
+        <span class="progression-stop">Foundations</span>
+        <div class="progression-track"></div>
+        <span class="progression-stop">Bypasses</span>
+        <div class="progression-track"></div>
+        <span class="progression-stop">Advanced</span>
+      </div>
+    </header>
+
+
+    <!-- 00 FUNDAMENTALS -->
+    <section class="section" id="fundamentals">
+      <div class="section-header">
+        <div class="section-num">// 00 &middot; Foundations</div>
+        <h2>What IDOR Actually Is</h2>
+        <p class="section-intro">Before you can hunt it, you need a precise mental model. Most "IDOR tutorials" stop at "change <code>?id=1</code> to <code>?id=2</code>." Real-world IDOR is broader, sneakier, and more lucrative.</p>
+      </div>
+
+      <h3><span class="num">→</span>The definition that matters</h3>
+      <p>
+        An <strong>Insecure Direct Object Reference</strong> is any access-control failure where a user-controlled identifier — in a URL path, query string, body, header, cookie, or GraphQL variable — references a backend object, and the server returns or modifies that object <em>without verifying that the requesting user is allowed to touch it</em>.
+      </p>
+      <p>
+        Crucially: <strong>IDOR is an authorization failure, not an authentication failure</strong>. The attacker is usually authenticated. The bug is that the server checked "are you logged in?" but forgot to check "are you <em>this</em> user?"
+      </p>
+
+      <div class="callout pro">
+        <div class="callout-title">// Mental model</div>
+        <p>Every request that touches a database row or filesystem object is a question. Authentication answers <em>who is asking</em>. Authorization answers <em>are they allowed to ask this particular question</em>. IDOR is a server that forgets to ask the second question.</p>
+      </div>
+
+      <h3><span class="num">→</span>Horizontal vs. vertical</h3>
+      <p>Two flavors, very different impact:</p>
+
+      <div class="diagram">
+        <div class="diagram-title">// IDOR &middot; Two Privilege Directions</div>
+        <div class="idor-flow">
+          <div class="flow-card horizontal">
+            <span class="flow-card-tag">Horizontal</span>
+            <h5>Same role, different victim</h5>
+            <p>You're a regular user. You access <em>another regular user's</em> data. Most common; usually Medium-to-High depending on data sensitivity.</p>
+            <div class="flow-arrow">user_A &nbsp;→&nbsp; reads &nbsp;→&nbsp; user_B's invoices</div>
+          </div>
+          <div class="flow-card vertical">
+            <span class="flow-card-tag">Vertical</span>
+            <h5>Lower role, higher-privilege function</h5>
+            <p>You're a regular user. You hit an <em>admin-only</em> endpoint by manipulating IDs or routes. Almost always High-to-Critical.</p>
+            <div class="flow-arrow">user_A &nbsp;→&nbsp; calls &nbsp;→&nbsp; /admin/deleteUser/123</div>
+          </div>
+        </div>
+      </div>
+
+      <h3><span class="num">→</span>Where it actually lives in OWASP</h3>
+      <p>
+        IDOR sits at #1 in both lists that matter. In the <strong>OWASP Top 10:2025</strong> (released as RC1 in November 2025 and the current published edition), it falls under <strong>A01:2025 &mdash; Broken Access Control</strong>, the same position it held in 2021. The 2025 edition's notable change here is that <strong>SSRF was rolled into A01</strong> &mdash; recognizing that server-side request forgery is just another flavor of "the server fetched something on behalf of a user without checking whether they were allowed to ask for it."
+      </p>
+      <p>
+        In the <strong>OWASP API Security Top 10 (2023 &mdash; still the current edition as of mid-2026)</strong>, IDOR is renamed <strong>BOLA &mdash; Broken Object Level Authorization</strong>, and it remains <strong>API1</strong>. The rename matters: it shifts the framing from "the ID was guessable" to "the authorization check was missing," which is what the bug actually is. Treat these two lists as the same problem class through different vocabulary.
+      </p>
+
+      <div class="callout info">
+        <div class="callout-title">// OWASP Top 10:2025 &middot; what's new</div>
+        <p>Two new categories: <strong>A03:2025 Software Supply Chain Failures</strong> and <strong>A10:2025 Mishandling of Exceptional Conditions</strong>. Security Misconfiguration jumped to #2. Insecure Design slid to #6. Authentication Failures kept the #7 slot with a slight rename. There's also an honorable-mention entry, <strong>X03:2025 Inappropriate Trust in AI Generated Code</strong> ("vibe coding") &mdash; relevant in section 08 below.</p>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-title">// Why programs pay for it</div>
+        <p>IDOR is a server-side bug with zero user interaction, a working PoC fits in a single HTTP request, and the impact (PII exposure, account takeover, tenant isolation breach) is easy to demonstrate. Triage teams love it; that's why even "boring" horizontal IDOR routinely pays four figures and chained criticals hit five.</p>
+      </div>
+
+      <h3><span class="num">→</span>Impact menu</h3>
+      <ul class="bullet">
+        <li><strong>Read</strong> — view another user's PII, invoices, messages, files, internal notes</li>
+        <li><strong>Update</strong> — change another user's email, password, role, payment method (frequently leads to ATO)</li>
+        <li><strong>Delete</strong> — destroy other users' resources, irrecoverably in some apps</li>
+        <li><strong>Create on someone else's account</strong> — plant data, files, comments, transactions</li>
+        <li><strong>Cross-tenant breach</strong> — in SaaS apps, read or modify data belonging to a different customer organization (almost always Critical)</li>
+      </ul>
+    </section>
+
+
+    <!-- 01 RECON -->
+    <section class="section" id="recon">
+      <div class="section-header">
+        <div class="section-num">// 01 &middot; Foundations</div>
+        <h2>Recon &amp; Target Selection</h2>
+        <p class="section-intro">IDORs are an authorization-logic class — they only appear where there's data to access. Your recon job is to find the data-shaped surface area as fast as possible.</p>
+      </div>
+
+      <h3><span class="num">→</span>Picking a program</h3>
+      <p>Not all programs are equal. For IDOR hunting specifically, prefer:</p>
+      <ul class="bullet">
+        <li><strong>Apps with multi-tenant or per-user data</strong> — CRMs, project trackers, healthcare portals, banking, e-commerce, BI dashboards, file-sharing</li>
+        <li><strong>Apps with rich API surface</strong> — REST/GraphQL/internal APIs visible to authenticated users</li>
+        <li><strong>Apps that allow you to create two accounts</strong> — same plan, same org, ideally different orgs/tenants</li>
+        <li><strong>Newer programs or recently-shipped features</strong> — check the program's "recently launched" or "scope changes" log</li>
+      </ul>
+
+      <div class="callout warn">
+        <div class="callout-title">// Scope discipline</div>
+        <p>Re-read the scope every time you switch targets. <em>"All subdomains of <code>*.example.com</code>"</em> rarely includes <code>support.example.com</code> if it's run by a vendor. Out-of-scope IDORs waste your time and the program's. Some programs explicitly exclude IDORs on "self-service" features (e.g. team-member endpoints where multi-user access is intentional).</p>
+      </div>
+
+      <h3><span class="num">→</span>Mapping the data surface</h3>
+      <p>You want to discover every endpoint the app exposes — especially the ones the official frontend doesn't use anymore.</p>
+
+      <ol class="bullet">
+        <li><strong>Spider with two browsers.</strong> Two profiles (or browsers) authenticated as two different users. Burp Suite recording in the background. Click everything in both accounts.</li>
+        <li><strong>Pull every JavaScript bundle.</strong> Use <code>getJS</code>, <code>katana</code>, or a Burp extension to enumerate <code>.js</code> files, then run <code>LinkFinder</code> / <code>SecretFinder</code> / <code>jsluice</code> over them to extract endpoints, parameter names, internal API hostnames, and AWS-style identifiers.</li>
+        <li><strong>Hit common API doc paths.</strong> <code>/swagger</code>, <code>/swagger-ui</code>, <code>/api-docs</code>, <code>/openapi.json</code>, <code>/v2/api-docs</code>, <code>/graphql</code>, <code>/graphiql</code>, <code>/altair</code>, <code>/playground</code>, <code>/redoc</code>. A leaked Swagger spec is an IDOR map.</li>
+        <li><strong>Search archived versions.</strong> <code>web.archive.org</code> and Common Crawl frequently expose old endpoints that the current frontend doesn't link to but the backend still serves.</li>
+        <li><strong>Wordlist-fuzz hidden endpoints.</strong> <code>ffuf</code> or <code>feroxbuster</code> with SecLists' API wordlists (<code>api/objects.txt</code>, <code>api/api-endpoints.txt</code>), then narrow on 401/403/200 anomalies.</li>
+        <li><strong>Check mobile.</strong> Decompile the Android APK (<code>apktool d app.apk</code>) and grep for base URLs and endpoint strings. Mobile clients routinely use endpoints the web app no longer references but which still ship full responses.</li>
+      </ol>
+
+      <div class="callout pro">
+        <div class="callout-title">// Pro tip — recently-shipped features</div>
+        <p>The newer the feature, the higher the IDOR probability. Watch the app's changelog, blog, release notes, and Twitter/X account. When a vendor announces "we just shipped team invites" — within 48 hours, hit every endpoint of that flow with two accounts.</p>
+      </div>
+    </section>
+
+
+    <!-- 02 CANDIDATES -->
+    <section class="section" id="candidates">
+      <div class="section-header">
+        <div class="section-num">// 02 &middot; Foundations</div>
+        <h2>Identifying IDOR Candidates</h2>
+        <p class="section-intro">Once you've mapped endpoints, your job is to identify which request parameters look like <em>object references</em>. Train your eye to spot identifiers wherever they're hiding — they aren't always called <code>id</code>.</p>
+      </div>
+
+      <h3><span class="num">→</span>Where IDs hide</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Location</th><th>Examples</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>URL path</td><td><code>/users/<span class="tk-id">42</span>/profile</code></td><td>Most obvious</td></tr>
+            <tr><td>Query string</td><td><code>?orderId=<span class="tk-id">9011</span></code></td><td>Easy to enumerate</td></tr>
+            <tr><td>Request body</td><td><code>{"target_user": <span class="tk-id">42</span>}</code></td><td>Often missed</td></tr>
+            <tr><td>Custom header</td><td><code>X-Account-Id: <span class="tk-id">42</span></code></td><td>SaaS multi-tenant clue</td></tr>
+            <tr><td>JWT claim</td><td><code>"sub": <span class="tk-id">42</span>, "tenant": <span class="tk-id">7</span></code></td><td>Decode and mutate</td></tr>
+            <tr><td>Cookie</td><td><code>userid=<span class="tk-id">42</span>; tenant=<span class="tk-id">7</span></code></td><td>Surprisingly common</td></tr>
+            <tr><td>Filename / S3 key</td><td><code>/uploads/<span class="tk-id">2024/u42/file.pdf</span></code></td><td>Direct file IDOR</td></tr>
+            <tr><td>GraphQL variable</td><td><code>{ user(id: <span class="tk-id">42</span>) { email } }</code></td><td>Section 05</td></tr>
+            <tr><td>WebSocket message</td><td><code>{"action":"subscribe","resource":<span class="tk-id">42</span>}</code></td><td>Section 06</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3><span class="num">→</span>ID format guide</h3>
+      <p>The format of the identifier shapes how you attack it:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Format</th><th>Example</th><th>Attack approach</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="pill green">Sequential int</span></td>
+              <td><code>1, 2, 3, ... 9847</code></td>
+              <td>Enumerate freely. Burp Intruder Numbers payload, or Turbo Intruder for speed.</td>
+            </tr>
+            <tr>
+              <td><span class="pill amber">UUIDv1</span></td>
+              <td><code>6ba7b810-9dad-11d1-...</code></td>
+              <td>Contains a timestamp + MAC. <em>Predictable</em> if you have one sample from the same generator.</td>
+            </tr>
+            <tr>
+              <td><span class="pill blue">UUIDv4</span></td>
+              <td><code>e8b0c2f0-3a4d-4f3a-...</code></td>
+              <td>Cryptographically random — direct enumeration fails. Hunt for leaks elsewhere (next subsection).</td>
+            </tr>
+            <tr>
+              <td><span class="pill amber">Base64-encoded int</span></td>
+              <td><code>NDI=</code> (= "42")</td>
+              <td>Decode, enumerate, re-encode. Surprisingly frequent.</td>
+            </tr>
+            <tr>
+              <td><span class="pill amber">Hash-shaped (MD5/SHA-1)</span></td>
+              <td><code>5d41402abc4b2a76b9719d911017c592</code></td>
+              <td>Often <code>md5(user_id)</code> or <code>md5(email)</code>. Try common inputs.</td>
+            </tr>
+            <tr>
+              <td><span class="pill green">Slug</span></td>
+              <td><code>/u/alice-johnson</code></td>
+              <td>Enumerate usernames from OSINT, comments, mentions, profiles.</td>
+            </tr>
+            <tr>
+              <td><span class="pill red">Snowflake / Twitter-style</span></td>
+              <td><code>1701234567890123456</code></td>
+              <td>Timestamp + machine ID + sequence. Predictable within tight time window.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3><span class="num">→</span>Hunting "unguessable" IDs</h3>
+      <p>UUIDv4 doesn't kill IDOR — it just moves the bug. The identifier still has to <em>reach</em> the attacker somehow. Look here:</p>
+      <ul class="bullet">
+        <li><strong>Public-facing lists</strong> — comment threads, "members of this org" pages, "people who liked this," activity feeds — these routinely leak UUIDs the app considers private</li>
+        <li><strong>Search endpoints</strong> — <code>/api/search?q=alice</code> often returns the UUID alongside the displayname</li>
+        <li><strong>Old API versions</strong> — <code>/api/v1/users</code> may still return a full enumerable list when <code>/v2/</code> doesn't</li>
+        <li><strong>Webhooks and notifications</strong> — outbound notifications (Slack, email, mobile push) sometimes contain raw object IDs</li>
+        <li><strong>Referer headers</strong> — when a user clicks a link out of your app, their object ID can leak in the <code>Referer</code> to an attacker-controlled URL</li>
+        <li><strong>Error messages</strong> — verbose JSON errors sometimes echo back a target ID you weren't authorized to know</li>
+      </ul>
+
+      <div class="callout danger">
+        <div class="callout-title">// Real-world &middot; Aug 2024</div>
+        <p>A researcher reported an IDOR exposing <strong>500,000+ US passport scans</strong> in a government-adjacent submission portal. The "identifier" was a sequential integer (<code>id=4550381</code>), and a sibling endpoint <code>/api/v1/attachment-list?enamemId=...</code> let an attacker enumerate file IDs per user. The fundamentals didn't change in twenty years — only the size of the database behind them.</p>
+      </div>
+    </section>
+
+
+    <!-- 03 METHODOLOGY -->
+    <section class="section" id="methodology">
+      <div class="section-header">
+        <div class="section-num">// 03 &middot; Hunting</div>
+        <h2>Testing Methodology</h2>
+        <p class="section-intro">A disciplined two-account workflow with Burp Suite (or Caido) is the foundation of IDOR hunting. This is the loop you should be able to execute in your sleep.</p>
+      </div>
+
+      <h3><span class="num">→</span>The two-account loop</h3>
+      <ol class="bullet">
+        <li><strong>Create two accounts.</strong> Account A is the "attacker"; Account B is the "victim." Same plan/tenant ideally, but also test cross-tenant if the app supports it.</li>
+        <li><strong>Populate both accounts with distinguishable data.</strong> Different names, different uploads, different settings. Visible differences = easier confirmation.</li>
+        <li><strong>Use Account B normally.</strong> Walk through every feature. Capture every request in Burp's history.</li>
+        <li><strong>Now swap into Account A's session.</strong> Replay Account B's requests with Account A's cookies / tokens.</li>
+        <li><strong>Confirm.</strong> A successful IDOR returns Account B's data while authenticated as Account A.</li>
+      </ol>
+
+      <h3><span class="num">→</span>The Match &amp; Replace shortcut</h3>
+      <p>Manually swapping cookies for every request is slow. Configure Burp's <strong>Match &amp; Replace</strong> rules to auto-swap session tokens on the fly:</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span>Burp Suite → Proxy → Match &amp; Replace</span>
+          <span class="code-header-tag">CONFIG</span>
+        </div>
+<pre>Type:    <span class="tk-kw">Request header</span>
+Match:   <span class="tk-str">^Authorization:.*$</span>
+Replace: <span class="tk-str">Authorization: Bearer eyJhbGciOi...&lt;ACCOUNT_A_TOKEN&gt;</span>
+☑ Regex match    ☑ Enabled</pre>
+      </div>
+
+      <p>Now you can browse as Account B and Burp will rewrite requests on the fly to be authenticated as Account A — and you watch which responses still return Account B's data. <strong>The Autorize extension automates exactly this loop.</strong></p>
+
+      <h3><span class="num">→</span>Autorize / AuthMatrix</h3>
+      <p><strong>Autorize</strong> (Burp/Caido) is the canonical IDOR-hunting extension. Workflow:</p>
+      <ol class="bullet">
+        <li>Sign in as <strong>Account A</strong>, copy Account A's session token, paste into Autorize's "Configuration" tab.</li>
+        <li>Switch session to <strong>Account B</strong>, browse the app.</li>
+        <li>Autorize replays every request a second time with Account A's token <em>and</em> a third time unauthenticated.</li>
+        <li>Color-coded results: <span class="pill red">Bypassed!</span> means Account A's response matched B's — you've potentially found an IDOR. <span class="pill green">Enforced!</span> means access was blocked.</li>
+      </ol>
+
+      <div class="callout warn">
+        <div class="callout-title">// False positives</div>
+        <p>Autorize compares response sizes/contents. "Bypassed" can fire on innocuous responses (e.g. generic 404 pages, public endpoints). Always manually verify the response actually contains victim data before reporting.</p>
+      </div>
+
+      <h3><span class="num">→</span>The minimum viable test request</h3>
+      <p>What a vulnerable request/response pair looks like in practice:</p>
+
+      <div class="split">
+        <div class="code-block">
+          <div class="code-header">
+            <span>Account B's legitimate request</span>
+            <span class="code-header-tag get">GET</span>
+          </div>
+<pre><span class="tk-kw">GET</span> /api/v2/users/<span class="tk-id">7011</span>/invoices HTTP/2
+<span class="tk-hdr">Host</span>: api.target.com
+<span class="tk-hdr">Authorization</span>: Bearer <span class="tk-str">&lt;B's token&gt;</span>
+<span class="tk-hdr">Accept</span>: application/json</pre>
+        </div>
+        <div class="code-block">
+          <div class="code-header">
+            <span>Attacker request — same URL, A's token</span>
+            <span class="code-header-tag get">GET</span>
+          </div>
+<pre><span class="tk-kw">GET</span> /api/v2/users/<span class="tk-id">7011</span>/invoices HTTP/2
+<span class="tk-hdr">Host</span>: api.target.com
+<span class="tk-hdr">Authorization</span>: Bearer <span class="tk-str">&lt;A's token&gt;</span>
+<span class="tk-hdr">Accept</span>: application/json
+
+<span class="tk-cmt"># If response returns B's invoices ⇒ IDOR confirmed</span></pre>
+        </div>
+      </div>
+
+      <h3><span class="num">→</span>Don't just test GET</h3>
+      <p>The fastest way to leave money on the table is testing only read endpoints. The same identifier flowing through <code>POST</code>, <code>PUT</code>, <code>PATCH</code>, or <code>DELETE</code> often has different (or absent) authorization. Always re-test every parameter against every method the server accepts:</p>
+
+      <div class="checklist">
+        <div class="checklist-title">Per-endpoint method matrix</div>
+        <ul class="checklist-items">
+          <li><strong>GET</strong> — does it leak victim data?</li>
+          <li><strong>POST</strong> — can you create resources <em>under</em> the victim's account?</li>
+          <li><strong>PUT / PATCH</strong> — can you mutate victim fields (email, password reset token, role)?</li>
+          <li><strong>DELETE</strong> — can you delete victim's resources?</li>
+          <li><strong>OPTIONS</strong> — does the CORS preflight reveal allowed methods you didn't see in the UI?</li>
+        </ul>
+      </div>
+    </section>
+
+
+    <!-- 04 BYPASSES -->
+    <section class="section" id="bypasses">
+      <div class="section-header">
+        <div class="section-num">// 04 &middot; Hunting</div>
+        <h2>Bypass Techniques</h2>
+        <p class="section-intro">When the obvious test returns 403, you're not done — you've just found that <em>one</em> code path checks authorization. There are usually others. Below: the modern bypass catalog that still pays in 2025.</p>
+      </div>
+
+      <h3><span class="num">→</span>HTTP verb tampering</h3>
+      <p>Many frameworks register handlers per-method. A team that hardened <code>GET /api/users/:id</code> may have left <code>POST</code>, <code>PUT</code>, <code>PATCH</code>, <code>HEAD</code>, or even bogus methods (<code>FOO</code>) wide open. Try:</p>
+      <div class="code-block">
+        <div class="code-header"><span>HTTP method tampering</span><span class="code-header-tag">FUZZ</span></div>
+<pre><span class="tk-kw">GET</span>     /api/users/7011/email    → <span class="tk-num">403</span>
+<span class="tk-kw">POST</span>    /api/users/7011/email    → <span class="tk-num">200</span>  <span class="tk-cmt"># sometimes</span>
+<span class="tk-kw">PUT</span>     /api/users/7011/email    → <span class="tk-num">200</span>  <span class="tk-cmt"># common</span>
+<span class="tk-kw">PATCH</span>   /api/users/7011/email    → <span class="tk-num">200</span>
+<span class="tk-kw">HEAD</span>    /api/users/7011/email    → <span class="tk-num">200</span>  <span class="tk-cmt"># headers only, but reveals existence</span>
+<span class="tk-kw">FOO</span>     /api/users/7011/email    → <span class="tk-num">200</span>  <span class="tk-cmt"># frameworks that fall through to GET</span></pre>
+      </div>
+
+      <h3><span class="num">→</span>Path normalization tricks</h3>
+      <p>If the auth check is path-based and the application server normalizes paths differently than the WAF or proxy, you can sometimes slip an unauthorized request past the check. Try every variant — modern routers/proxies disagree on which to normalize:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Variant</th><th>Path</th></tr></thead>
+          <tbody>
+            <tr><td>Baseline</td><td><code>/api/users/7011</code></td></tr>
+            <tr><td>Trailing slash</td><td><code>/api/users/7011/</code></td></tr>
+            <tr><td>Double slash</td><td><code>/api//users/7011</code></td></tr>
+            <tr><td>Dot-segment</td><td><code>/api/./users/7011</code></td></tr>
+            <tr><td>Parent traversal</td><td><code>/api/users/7000/../7011</code></td></tr>
+            <tr><td>Encoded slash</td><td><code>/api/users%2F7011</code></td></tr>
+            <tr><td>Double-encoded</td><td><code>/api/users%252F7011</code></td></tr>
+            <tr><td>Encoded null</td><td><code>/api/users/7011%00</code></td></tr>
+            <tr><td>Unicode space</td><td><code>/api/users/7011%20</code></td></tr>
+            <tr><td>Path parameter</td><td><code>/api/users/7011;.json</code></td></tr>
+            <tr><td>Extension swap</td><td><code>/api/users/7011.json</code>, <code>.xml</code>, <code>.html</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3><span class="num">→</span>Header-based bypass</h3>
+      <p>Reverse proxies and WAFs sometimes rewrite the request URL based on headers — and authorization middleware sometimes runs against the rewritten URL while the application handler runs against the original. Try injecting:</p>
+
+      <div class="code-block">
+        <div class="code-header"><span>Headers worth testing</span><span class="code-header-tag">HEADERS</span></div>
+<pre><span class="tk-hdr">X-Original-URL</span>: /api/users/7011
+<span class="tk-hdr">X-Rewrite-URL</span>: /api/users/7011
+<span class="tk-hdr">X-Forwarded-For</span>: 127.0.0.1
+<span class="tk-hdr">X-Forwarded-Host</span>: localhost
+<span class="tk-hdr">X-Custom-IP-Authorization</span>: 127.0.0.1
+<span class="tk-hdr">X-Originating-IP</span>: 127.0.0.1
+<span class="tk-hdr">X-Remote-IP</span>: 127.0.0.1
+<span class="tk-hdr">X-Client-IP</span>: 127.0.0.1
+<span class="tk-hdr">X-Host</span>: localhost
+<span class="tk-hdr">Referer</span>: https://target.com/admin/dashboard</pre>
+      </div>
+
+      <h3><span class="num">→</span>Parameter pollution &amp; wrapping</h3>
+      <p>Some servers parse the first occurrence of a parameter; others the last. WAFs may inspect one while application code reads the other. Try every combination:</p>
+
+      <div class="code-block">
+        <div class="code-header"><span>Parameter pollution variants</span><span class="code-header-tag">POLLUTE</span></div>
+<pre><span class="tk-cmt"># Two values of the same parameter</span>
+<span class="tk-kw">GET</span> /api/invoice?id=<span class="tk-id">SELF</span>&amp;id=<span class="tk-id">7011</span>
+<span class="tk-kw">GET</span> /api/invoice?id=<span class="tk-id">7011</span>&amp;id=<span class="tk-id">SELF</span>
+
+<span class="tk-cmt"># Array wrapping (JSON body)</span>
+{"user_id": <span class="tk-id">7011</span>}            → 403
+{"user_id": [<span class="tk-id">7011</span>]}          → 200  <span class="tk-cmt"># auth check on int, app reads array[0]</span>
+{"user_id": [<span class="tk-id">"SELF"</span>, <span class="tk-id">7011</span>]}  → 200
+{"user_id": {"value": <span class="tk-id">7011</span>}}  → 200  <span class="tk-cmt"># auth on primitive, app on object</span>
+
+<span class="tk-cmt"># Type confusion</span>
+{"user_id": "<span class="tk-id">7011</span>"}          <span class="tk-cmt"># string vs int</span>
+{"user_id": <span class="tk-id">7011.0</span>}            <span class="tk-cmt"># float vs int</span>
+{"user_id": "<span class="tk-id">007011</span>"}          <span class="tk-cmt"># leading zeros</span>
+{"user_id": <span class="tk-id">0x1B63</span>}            <span class="tk-cmt"># hex</span></pre>
+      </div>
+
+      <h3><span class="num">→</span>JSON / XML / form-encoded swap</h3>
+      <p>Many APIs accept multiple content types. The deserializer for one format may apply different validation than another. Try resending the same logical request as:</p>
+      <ul class="bullet">
+        <li><code>application/json</code> &nbsp;→&nbsp; <code>application/xml</code></li>
+        <li><code>application/json</code> &nbsp;→&nbsp; <code>application/x-www-form-urlencoded</code></li>
+        <li><code>application/json</code> &nbsp;→&nbsp; <code>multipart/form-data</code></li>
+        <li><code>application/json</code> &nbsp;→&nbsp; <code>text/xml</code> (legacy XML parsers occasionally still work)</li>
+      </ul>
+
+      <h3><span class="num">→</span>Endpoint variants</h3>
+      <p>For any sensitive operation, the developer often shipped multiple endpoints over time. Try every guess:</p>
+      <ul class="bullet">
+        <li><strong>Version downgrade</strong> — <code>/api/v3/users/7011</code> blocked but <code>/api/v2/</code>, <code>/api/v1/</code>, <code>/api/internal/</code>, <code>/api/legacy/</code> still alive</li>
+        <li><strong>Mobile-only endpoints</strong> — <code>/api/mobile/</code>, <code>/api/ios/</code>, <code>/api/android/</code> with looser auth</li>
+        <li><strong>Subpath variants</strong> — if <code>/users/7011/profile</code> blocks, try <code>/users/7011/details</code>, <code>/users/7011/info</code>, <code>/users/7011/summary</code></li>
+        <li><strong>List endpoints</strong> — when fetching <code>/users/7011</code> 403s, try <code>/users?ids=7011</code> or <code>/users/batch?ids[]=7011</code></li>
+        <li><strong>Export / report endpoints</strong> — <code>/export</code>, <code>/print</code>, <code>/pdf</code>, <code>/download</code> often skip the in-app auth layer</li>
+      </ul>
+
+      <div class="callout pro">
+        <div class="callout-title">// Modern winner — Unicode &amp; whitespace</div>
+        <p>Several 2024-2025 writeups documented bypasses using zero-width Unicode characters or trailing whitespace in path segments — <code>/api/users/7011%E2%80%8B</code> (zero-width space) or <code>/api/users/%097011</code> (tab character). The router strips them and routes the request; the WAF and auth middleware see a different path and let it through.</p>
+      </div>
+    </section>
+
+
+    <!-- 05 GRAPHQL -->
+    <section class="section" id="graphql">
+      <div class="section-header">
+        <div class="section-num">// 05 &middot; Hunting</div>
+        <h2>GraphQL IDOR</h2>
+        <p class="section-intro">GraphQL changes IDOR from "is one route protected?" to "is every resolver protected?" — and the answer is almost never. Plus aliasing turns a single HTTP request into hundreds of authorization probes.</p>
+      </div>
+
+      <h3><span class="num">→</span>Step one — introspection</h3>
+      <p>If introspection is on, you have the entire API map for free. Always check:</p>
+      <div class="code-block">
+        <div class="code-header"><span>Standard introspection query</span><span class="code-header-tag post">POST</span></div>
+<pre><span class="tk-kw">POST</span> /graphql HTTP/2
+<span class="tk-hdr">Content-Type</span>: application/json
+
+{"query": "{ __schema { types { name fields { name args { name type { name } } } } } }"}</pre>
+      </div>
+
+      <p>If introspection is disabled, try <code>Clairvoyance</code> or <code>graphql-cop</code> — they reconstruct the schema from error messages and field suggestions.</p>
+
+      <h3><span class="num">→</span>Field-level authorization gaps</h3>
+      <p>Even when <code>query.user</code> enforces "you must be that user," nested fields (<code>user.orders</code>, <code>user.paymentMethods</code>) are <em>separate resolvers</em>. Developers often guard the top level and forget the leaves.</p>
+
+      <div class="split">
+        <div class="code-block">
+          <div class="code-header"><span>Direct access — blocked</span><span class="code-header-tag post">POST</span></div>
+<pre><span class="tk-kw">query</span> {
+  user(id: <span class="tk-id">7011</span>) {
+    email
+    <span class="tk-cmt"># → "Unauthorized"</span>
+  }
+}</pre>
+        </div>
+        <div class="code-block">
+          <div class="code-header"><span>Nested access — leaks</span><span class="code-header-tag post">POST</span></div>
+<pre><span class="tk-kw">query</span> {
+  organization(id: <span class="tk-id">9</span>) {
+    members {
+      id
+      email          <span class="tk-cmt"># leaks all members</span>
+      paymentMethod  <span class="tk-cmt"># even worse</span>
+    }
+  }
+}</pre>
+        </div>
+      </div>
+
+      <h3><span class="num">→</span>Alias-batched IDOR &amp; rate-limit bypass</h3>
+      <p>This is the GraphQL primitive that turned modest IDORs into critical mass-extraction bugs. Aliases let you call the same resolver many times <em>in a single HTTP request</em>. Most rate limiters and lockouts count <em>requests</em>, not <em>resolver invocations</em>.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span>Alias-batched user enumeration</span><span class="code-header-tag post">POST</span></div>
+<pre><span class="tk-kw">query</span> BatchExfil {
+  u1: <span class="tk-fn">user</span>(id: <span class="tk-id">7001</span>) { id email phone createdAt }
+  u2: <span class="tk-fn">user</span>(id: <span class="tk-id">7002</span>) { id email phone createdAt }
+  u3: <span class="tk-fn">user</span>(id: <span class="tk-id">7003</span>) { id email phone createdAt }
+  <span class="tk-cmt">// ... up to several hundred aliases ...</span>
+  u200: <span class="tk-fn">user</span>(id: <span class="tk-id">7200</span>) { id email phone createdAt }
+}
+
+<span class="tk-cmt"># One HTTP request → 200 user records returned
+# Rate limiter sees: 1 request. WAF sees: 1 request.</span></pre>
+      </div>
+
+      <p>The same primitive applies to:</p>
+      <ul class="bullet">
+        <li><strong>Authentication brute-force</strong> — 100 password candidates in a single POST against a <code>login(email, password)</code> mutation</li>
+        <li><strong>OTP/token brute-force</strong> — 50 OTP guesses per request against <code>verifyCode(code)</code></li>
+        <li><strong>Coupon enumeration</strong> — short-entropy codes batched through <code>validateCoupon(code)</code></li>
+        <li><strong>Hidden field probing</strong> — alias-call an admin mutation 20 ways to detect resolver-level authorization gaps</li>
+      </ul>
+
+      <div class="callout danger">
+        <div class="callout-title">// Disclosed pattern &middot; alias batching</div>
+        <p>Multiple HackerOne reports (incl. #1016122, #1987489) documented programs where alias batching turned per-request rate limits into nominal protection — 100 OTP guesses per request hit the right code before any lockout fired. Modern GraphQL servers should rate-limit at the <em>operation</em> level; many still don't.</p>
+      </div>
+
+      <h3><span class="num">→</span>Batched-operations IDOR</h3>
+      <p>Separate from aliasing, GraphQL also supports sending an <em>array</em> of operations in one request. Same effect, different shape:</p>
+      <div class="code-block">
+        <div class="code-header"><span>Operation batching</span><span class="code-header-tag post">POST</span></div>
+<pre>[
+  {"query": "{ user(id: <span class="tk-id">7001</span>) { email } }"},
+  {"query": "{ user(id: <span class="tk-id">7002</span>) { email } }"},
+  {"query": "{ user(id: <span class="tk-id">7003</span>) { email } }"}
+]</pre>
+      </div>
+
+      <h3><span class="num">→</span>Mutation IDOR</h3>
+      <p>Read-side IDOR is the obvious case; mutations are where the money lives. Mutations that take a target ID — <code>updateUser</code>, <code>resetPassword</code>, <code>transferOwnership</code>, <code>deleteOrganization</code>, <code>setRole</code> — should be your top priority once introspection succeeds.</p>
+
+      <div class="checklist">
+        <div class="checklist-title">GraphQL IDOR checklist</div>
+        <ul class="checklist-items">
+          <li><strong>Introspection</strong> — enabled in production? Schema dumpable?</li>
+          <li><strong>Per-query auth</strong> — every <code>Query.X</code> with an ID argument tested for horizontal IDOR</li>
+          <li><strong>Nested resolvers</strong> — every traversal through relationships re-tested independently</li>
+          <li><strong>Aliasing</strong> — does sending 50 aliases of the same field execute 50 times?</li>
+          <li><strong>Mutations</strong> — every <code>Mutation.X</code> taking a target ID tested with a foreign ID</li>
+          <li><strong>Hidden / admin mutations</strong> — does a low-privilege session call an admin mutation and get a response other than auth-error?</li>
+          <li><strong>Field-level auth</strong> — sensitive fields (<code>ssn</code>, <code>internalNotes</code>, <code>apiKey</code>) requested via a permitted path</li>
+        </ul>
+      </div>
+    </section>
+
+
+    <!-- 06 ADVANCED -->
+    <section class="section" id="advanced">
+      <div class="section-header">
+        <div class="section-num">// 06 &middot; Advanced</div>
+        <h2>Advanced Techniques</h2>
+        <p class="section-intro">Past the basics, the highest-paying IDORs come from chaining and from non-obvious attack surfaces. This is what separates "another invoice IDOR" from a $20K bounty.</p>
+      </div>
+
+      <h3><span class="num">→</span>Chaining for impact</h3>
+      <p>A medium IDOR plus another medium bug often equals a critical. Chains worth building:</p>
+      <ul class="bullet">
+        <li><strong>IDOR → ATO.</strong> Find an IDOR on the password-reset flow or email-change flow. Update victim's email to one you control, trigger a reset, take over.</li>
+        <li><strong>IDOR + IDOR.</strong> The first IDOR leaks the second IDOR's required identifier (e.g. the API key, the UUID, the reset token).</li>
+        <li><strong>IDOR + verbose error.</strong> An "unauthorized" response that echoes back the requested object's contents (yes, this still happens).</li>
+        <li><strong>IDOR + race condition.</strong> A transactional endpoint that checks ownership in step 1 and acts in step 3; concurrent requests change the ownership mid-flow.</li>
+        <li><strong>IDOR + mass assignment.</strong> An object-update endpoint that accepts extra fields beyond what the frontend sends (<code>role: "admin"</code>, <code>tenant_id: 0</code>) and applies them.</li>
+        <li><strong>IDOR + cache deception.</strong> An IDOR that produces a personalized response, combined with a cache that stores it under a public-looking URL — exposes one user's data to everyone.</li>
+      </ul>
+
+      <h3><span class="num">→</span>Mass assignment overlap</h3>
+      <p>Closely related to IDOR. The classic move: the frontend lets you edit <code>name</code> and <code>bio</code>; the API silently accepts <code>role</code>, <code>email_verified</code>, <code>tenant_id</code>, <code>is_admin</code>, or <code>password_hash</code> too. Always try adding fields the UI didn't send:</p>
+
+      <div class="code-block">
+        <div class="code-header"><span>Mass assignment probe</span><span class="code-header-tag put">PATCH</span></div>
+<pre><span class="tk-kw">PATCH</span> /api/users/<span class="tk-id">SELF</span> HTTP/2
+<span class="tk-hdr">Content-Type</span>: application/json
+
+{
+  "name": "alice",
+  "bio": "...",
+  <span class="tk-cmt">// fields the UI never sends — try them anyway</span>
+  "role": "admin",
+  "is_verified": <span class="tk-num">true</span>,
+  "tenant_id": <span class="tk-id">0</span>,
+  "subscription_tier": "enterprise",
+  "credit_balance": <span class="tk-num">999999</span>
+}</pre>
+      </div>
+
+      <h3><span class="num">→</span>Race-condition IDOR</h3>
+      <p>If the ownership check is non-atomic with the action, you can change ownership between them. Burp's <strong>Repeater → Send group in parallel</strong> (single-packet attack via HTTP/2) is purpose-built for this. The pattern: thread A transfers ownership of object X to your account; thread B reads X under the old owner's session. Hit them in the same TCP packet.</p>
+
+      <h3><span class="num">→</span>WebSocket IDOR</h3>
+      <p>Realtime apps (chat, collaborative editors, dashboards) push data over WebSocket. Authorization on the <em>connection</em> doesn't imply authorization on every <em>message</em>. Capture the WebSocket frames in Burp and try replaying with a different resource ID:</p>
+
+      <div class="code-block">
+        <div class="code-header"><span>WebSocket message replay</span><span class="code-header-tag">WS</span></div>
+<pre><span class="tk-cmt"># Connected as Account A. Replace document_id and re-send:</span>
+{
+  "type": "subscribe",
+  "channel": "document",
+  "document_id": <span class="tk-id">B's_doc_id</span>
+}
+
+<span class="tk-cmt"># If the server starts streaming B's doc updates → IDOR</span></pre>
+      </div>
+
+      <h3><span class="num">→</span>Mobile-backend IDOR</h3>
+      <p>Mobile apps frequently expose endpoints the web app doesn't, with looser auth. Workflow:</p>
+      <ol class="bullet">
+        <li>Pull the APK from an APK mirror, decompile with <code>apktool</code> + <code>jadx</code></li>
+        <li>Grep extracted resources for <code>https://</code> base URLs and endpoint strings</li>
+        <li>Pin-bypass with Frida or <code>objection</code>, proxy the live traffic through Burp</li>
+        <li>Run the same two-account methodology against the discovered mobile endpoints</li>
+      </ol>
+
+      <h3><span class="num">→</span>UUID prediction (when it works)</h3>
+      <p>UUIDv1 contains a 60-bit timestamp and the generating machine's MAC address. Given one known UUID from the same generator, an attacker can predict UUIDs created within a tight time window. The <code>guidtool</code> and <code>sandwich</code> projects do this automatically. UUIDv4 is genuine random; UUIDv7 (timestamp + random) is partially predictable but not in a useful way.</p>
+
+      <div class="callout warn">
+        <div class="callout-title">// What's not in this section</div>
+        <p>This guide does not provide step-by-step payloads for attacking specific real-world services. Every technique here is illustrative; apply them only on programs whose scope explicitly authorizes you to test. Out-of-scope testing is unauthorized access — different word, same legal class as the bug you're hunting.</p>
+      </div>
+    </section>
+
+
+    <!-- 07 TOOLING -->
+    <section class="section" id="tooling">
+      <div class="section-header">
+        <div class="section-num">// 07 &middot; Advanced</div>
+        <h2>Tooling &amp; Automation</h2>
+        <p class="section-intro">A modern IDOR-hunting stack: what to install, when to use each, and where automation actually saves time vs. wastes it.</p>
+      </div>
+
+      <h3><span class="num">→</span>The proxy: Burp Suite or Caido</h3>
+      <ul class="bullet">
+        <li><strong>Burp Suite Professional</strong> — still the industry standard. Repeater, Intruder, Logger++, the BApp Store. Worth the license for serious hunting.</li>
+        <li><strong>Burp Suite Community</strong> — viable for IDOR work specifically (it doesn't rate-limit Repeater). You lose Intruder speed and most extensions.</li>
+        <li><strong>Caido</strong> — Rust-based alternative that matured significantly through 2024-2025. Lighter, cleaner UI, decent extension ecosystem, free tier usable for most IDOR workflows. Many hunters now run Caido as primary and Burp on the side.</li>
+      </ul>
+
+      <h3><span class="num">→</span>Must-have Burp extensions for IDOR</h3>
+      <div class="resources">
+        <div class="res-card">
+          <div class="res-card-tag">// Extension &middot; Auth</div>
+          <div class="res-card-title">Autorize</div>
+          <div class="res-card-desc">The canonical IDOR-hunting extension. Replays every request with a second session token and flags responses that look identical. Color-coded results.</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-tag">// Extension &middot; Auth</div>
+          <div class="res-card-title">AuthMatrix</div>
+          <div class="res-card-desc">More structured than Autorize — define a role matrix once, then verify every endpoint against every role. Heavier setup, deeper output.</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-tag">// Extension &middot; Params</div>
+          <div class="res-card-title">Param Miner</div>
+          <div class="res-card-desc">Discovers hidden headers and parameters by mass-fuzzing names. Frequently unearths the parameter that's actually vulnerable.</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-tag">// Extension &middot; GraphQL</div>
+          <div class="res-card-title">InQL / GraphQL Raider</div>
+          <div class="res-card-desc">Pulls schema via introspection, renders it browseably, generates test queries per type. Essential for GraphQL work.</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-tag">// Extension &middot; Logging</div>
+          <div class="res-card-title">Logger++</div>
+          <div class="res-card-desc">Replaces the default HTTP history with a filterable, exportable log. Build IDOR-specific filters (e.g., responses containing PII keywords).</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-tag">// Extension &middot; Fuzz</div>
+          <div class="res-card-title">Turbo Intruder</div>
+          <div class="res-card-desc">Python-scriptable, much faster than vanilla Intruder. Race-condition single-packet attacks live here.</div>
+        </div>
+      </div>
+
+      <h3><span class="num">→</span>Command-line tools</h3>
+      <ul class="bullet">
+        <li><code>ffuf</code> — best-in-class HTTP fuzzer; use with SecLists wordlists for endpoint discovery and ID enumeration</li>
+        <li><code>feroxbuster</code> — recursive content discovery, Rust-fast</li>
+        <li><code>arjun</code> — parameter discovery (hidden GET/POST/JSON parameters)</li>
+        <li><code>katana</code> — modern crawler from ProjectDiscovery; good at JS-rendered apps</li>
+        <li><code>nuclei</code> — template-driven scanner; community-contributed IDOR templates exist but they're shallow on their own. Useful for checking known patterns at scale.</li>
+        <li><code>jsluice</code> — extracts URLs, secrets, and endpoint strings from JavaScript bundles</li>
+        <li><code>Clairvoyance</code> / <code>graphql-cop</code> — GraphQL schema reconstruction when introspection is off</li>
+      </ul>
+
+      <h3><span class="num">→</span>When to write a Python script</h3>
+      <p>Once you've manually proven an IDOR on a single ID, the natural next step is to enumerate. Don't reach for Intruder — write a short script. It's faster to scope (don't run away with millions of requests), easier to make safe (limit to 5-10 records for the PoC, never dump the whole DB), and easier to attach to your report.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span>poc.py — safe IDOR enumeration sketch</span><span class="code-header-tag">PYTHON</span></div>
+<pre><span class="tk-kw">import</span> requests
+
+URL = <span class="tk-str">"https://api.target.com/api/users/{}/profile"</span>
+TOKEN = <span class="tk-str">"Bearer eyJhbGciOi..."</span>  <span class="tk-cmt"># your low-priv token</span>
+
+<span class="tk-cmt"># Hard cap. NEVER dump the whole database.</span>
+SAMPLES = <span class="tk-num">5</span>
+
+<span class="tk-kw">for</span> uid <span class="tk-kw">in</span> range(<span class="tk-num">7000</span>, <span class="tk-num">7000</span> + SAMPLES):
+    r = requests.get(URL.format(uid), headers={<span class="tk-str">"Authorization"</span>: TOKEN})
+    <span class="tk-kw">if</span> r.status_code == <span class="tk-num">200</span>:
+        <span class="tk-fn">print</span>(f<span class="tk-str">"[+] uid={uid} email={r.json().get('email')}"</span>)
+    <span class="tk-kw">else</span>:
+        <span class="tk-fn">print</span>(f<span class="tk-str">"[-] uid={uid} status={r.status_code}"</span>)</pre>
+      </div>
+
+      <div class="callout warn">
+        <div class="callout-title">// Don't dump the database</div>
+        <p>A 5-10 record sample is enough to prove impact. Mass extraction is the line between "ethical disclosure" and "unauthorized access." Most programs explicitly forbid going past minimal PoC volume in their rules — and triagers will downgrade or close reports that obviously crossed it.</p>
+      </div>
+    </section>
+
+
+    <!-- 08 AI-ASSISTED -->
+    <section class="section" id="ai">
+      <div class="section-header">
+        <div class="section-num">// 08 &middot; Advanced</div>
+        <h2>AI-Assisted IDOR Hunting</h2>
+        <p class="section-intro">By 2026, AI is no longer a curiosity in the bug bounty stack — it's table stakes for top hunters. But it doesn't find IDORs <em>for</em> you. It collapses the time between "I have a hunch" and "I have a working PoC." Used carelessly it floods you with hallucinations and leaks target data to third parties. Used well it's a 3-5× force multiplier on the right phases.</p>
+      </div>
+
+      <h3><span class="num">→</span>Where AI actually helps (and where it doesn't)</h3>
+      <p>Be specific about this — vague "AI for bug bounty" claims don't survive contact with real targets.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Phase</th><th>AI verdict</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr><td>Endpoint discovery from JS bundles</td><td><span class="pill green">High value</span></td><td>LLMs are excellent at extracting structured endpoint lists from minified JS — much faster than regex.</td></tr>
+            <tr><td>OpenAPI / Swagger triage</td><td><span class="pill green">High value</span></td><td>Feed the spec, ask "rank these endpoints by IDOR risk based on parameter shape and naming."</td></tr>
+            <tr><td>PoC script generation</td><td><span class="pill green">High value</span></td><td>"Write a Python enumeration script for this endpoint with hard cap N=5" — saves 10 min, reliably.</td></tr>
+            <tr><td>Report drafting</td><td><span class="pill green">High value</span></td><td>Structure, CVSS reasoning, impact framing. Always edit before submitting.</td></tr>
+            <tr><td>Mobile APK string analysis</td><td><span class="pill amber">Useful</span></td><td>LLMs surface base URLs and endpoint strings well, but verify — they hallucinate paths.</td></tr>
+            <tr><td>Bypass-payload brainstorming</td><td><span class="pill amber">Useful</span></td><td>Good for "give me 20 path-normalization variants" — but no substitute for testing each one.</td></tr>
+            <tr><td>Reasoning about authorization logic</td><td><span class="pill red">Low value</span></td><td>LLMs don't actually understand multi-tenant role models. They'll confidently call non-bugs IDORs.</td></tr>
+            <tr><td>Confirming exploitability</td><td><span class="pill red">Low value</span></td><td>"This looks like an IDOR" is a hypothesis. Always confirm with the two-account loop yourself.</td></tr>
+            <tr><td>Choosing what to hunt</td><td><span class="pill red">Low value</span></td><td>Intuition for "this feature feels new and rushed" still beats any model.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3><span class="num">→</span>LLM-assisted recon &amp; endpoint discovery</h3>
+      <p>The single highest-ROI use of AI in IDOR hunting. Take a target's JavaScript bundle, paste it into Claude/GPT, and ask for:</p>
+
+      <div class="code-block">
+        <div class="code-header"><span>Prompt template &middot; JS-to-endpoints</span><span class="code-header-tag">PROMPT</span></div>
+<pre>You are a security researcher reviewing a JavaScript bundle from
+<span class="tk-id">&lt;target&gt;</span> for endpoint enumeration purposes (authorized program).
+
+Extract:
+1. Every HTTP endpoint (path + method when inferrable).
+2. Every parameter name that appears to be an object identifier
+   (anything ending in _id, _uuid, _key, _slug, etc).
+3. Any internal API base URLs or hostnames.
+4. Authentication patterns (header names, token shapes).
+
+Output as a structured table. Do not invent endpoints not
+present in the source. Mark any uncertain inference with [?].
+
+&lt;paste bundle&gt;</pre>
+      </div>
+
+      <p>The "do not invent" instruction is doing real work — LLMs love to fabricate plausible-looking endpoints. Spot-check the output before fuzzing.</p>
+
+      <p>The same pattern applies to <strong>OpenAPI / Swagger specs</strong> (ask for IDOR-candidate ranking by parameter shape) and <strong>decompiled mobile apps</strong> (ask for endpoint strings, ignore UI code).</p>
+
+      <h3><span class="num">→</span>AI-augmented proxies</h3>
+      <p>The 2025-2026 generation of proxy tooling shipped real AI features, not chatbot wrappers:</p>
+
+      <div class="resources">
+        <div class="res-card">
+          <div class="res-card-tag">// Proxy &middot; Caido</div>
+          <div class="res-card-title">Caido Shift &amp; Assistant</div>
+          <div class="res-card-desc">Caido's "Shift" lets you select a request in Replay and ask an LLM to mutate it (variant payloads, bypass attempts, type confusion). Their Assistant is a security-tuned model for explaining requests and suggesting attack vectors. Bring-your-own-model via OpenRouter (Anthropic, OpenAI, Google).</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-tag">// Plugin &middot; Caido</div>
+          <div class="res-card-title">Chatio</div>
+          <div class="res-card-desc">Community Caido plugin (2.0.0 released Feb 2026) — multi-provider AI assistant integrated into the testing workflow with security-focused templates. Free, open-source.</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-tag">// Proxy &middot; Burp</div>
+          <div class="res-card-title">Burp AI Assistant</div>
+          <div class="res-card-desc">PortSwigger's in-Repeater AI. Explains requests, suggests payload variants, generates custom Bambdas. Requires PortSwigger AI credits; locked to a single backing model.</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-tag">// CLI &middot; Agentic</div>
+          <div class="res-card-title">PentestGPT (Agentic v1.0)</div>
+          <div class="res-card-desc">Goes beyond chat — a three-module pipeline (reasoning, generation, parsing) that plans, executes, and adapts end-to-end. Docker-first with 20+ pre-installed tools. Strong on CTF-style targets; less proven on subtle business-logic IDORs.</div>
+        </div>
+      </div>
+
+      <h3><span class="num">→</span>The multi-agent pattern (Glasswing-style)</h3>
+      <p>The most credible 2026 research direction isn't "one big agent finds bugs." It's <em>many narrow agents that disagree</em>. Cloudflare's <strong>Project Glasswing</strong> (and open-source reimplementations like <code>evilsocket/audit</code>) ship an 8-stage pipeline:</p>
+
+      <div class="code-block">
+        <div class="code-header"><span>Multi-agent vuln-discovery pipeline</span><span class="code-header-tag">ARCH</span></div>
+<pre><span class="tk-cmt"># Different models, deliberate disagreement, reachability gate</span>
+
+<span class="tk-num">1</span>. <span class="tk-fn">Recon</span>      → Opus-class       <span class="tk-cmt">// map the repo / API, emit Hunt tasks</span>
+<span class="tk-num">2</span>. <span class="tk-fn">Hunt</span>       → Sonnet-class     <span class="tk-cmt">// one attack class per agent (BOLA, BFLA, mass-assign…)</span>
+<span class="tk-num">3</span>. <span class="tk-fn">Validate</span>   → Opus-class       <span class="tk-cmt">// adversarial re-read, tries to DISPROVE</span>
+<span class="tk-num">4</span>. <span class="tk-fn">Gapfill</span>    → Sonnet-class     <span class="tk-cmt">// re-queue under-covered surface</span>
+<span class="tk-num">5</span>. <span class="tk-fn">Reachability</span> → static analysis <span class="tk-cmt">// gating step: is the buggy path reachable?</span>
+<span class="tk-num">6</span>. <span class="tk-fn">PoC</span>        → Sonnet-class     <span class="tk-cmt">// generate concrete exploit attempt</span>
+<span class="tk-num">7</span>. <span class="tk-fn">Triage</span>     → Opus-class       <span class="tk-cmt">// severity + dedupe</span>
+<span class="tk-num">8</span>. <span class="tk-fn">Report</span>     → Opus-class       <span class="tk-cmt">// structured writeup</span></pre>
+      </div>
+
+      <p>The key insight: <strong>asking the same model to find AND validate a bug is a recipe for false positives</strong>. Different models at the Hunt and Validate stages catch each other's confabulations. The reachability gate kills the largest false-positive class — "this looks buggy in isolation but no real request path reaches it."</p>
+
+      <p>For solo hunters, the practical takeaway isn't running the full pipeline — it's <strong>splitting your AI workflow across two providers</strong>. Use one model to suggest IDOR candidates from an OpenAPI spec; paste the candidates into a different model and ask "argue why each of these is NOT vulnerable." The bugs that survive both passes are the ones worth testing manually.</p>
+
+      <h3><span class="num">→</span>AI for PoC scripting</h3>
+      <p>This is the workflow that genuinely shaves hours per finding. Once you've manually proven a single-ID IDOR, ask an LLM to scaffold the enumeration script — with explicit safety constraints:</p>
+
+      <div class="code-block">
+        <div class="code-header"><span>Prompt template &middot; safe PoC scripting</span><span class="code-header-tag">PROMPT</span></div>
+<pre>Write a Python script that demonstrates IDOR on this endpoint:
+
+  <span class="tk-kw">GET</span> /api/v2/users/{id}/profile
+  <span class="tk-hdr">Authorization</span>: Bearer &lt;token from env&gt;
+
+Constraints (NON-NEGOTIABLE):
+- Hard-cap at <span class="tk-num">5</span> sequential IDs. Never more.
+- Read TOKEN from env var, never hardcoded.
+- Print only: id, http_status, length(response_body).
+- Do NOT print response contents (could include real PII).
+- Add a 1-second sleep between requests.
+- Exit cleanly on any 429.
+
+Output a single .py file. No commentary.</pre>
+      </div>
+
+      <p>The constraints aren't optional — they keep your PoC inside ethical and legal bounds. The 5-record cap, the sleep, the no-content-print: these are the difference between "responsible disclosure" and "you exfiltrated PII." Most current LLMs will respect explicit caps if you state them up front.</p>
+
+      <h3><span class="num">→</span>AI-generated reports</h3>
+      <p>LLMs are excellent at structured writing — exactly what reports need. Workflow:</p>
+      <ol class="bullet">
+        <li>Save the vulnerable request/response pair and your reproduction notes to a text file.</li>
+        <li>Ask the LLM: "Write a bug bounty report using the structure: Summary / Severity / Steps to Reproduce / PoC / Impact / Remediation. Use the source material below. Do not invent details I haven't given you."</li>
+        <li>Ask for a CVSS v3.1 vector with explicit reasoning per metric.</li>
+        <li><strong>Edit it.</strong> Triagers can spot LLM phrasing. The structure is fine; the voice should be yours.</li>
+      </ol>
+
+      <h3><span class="num">→</span>The caveats — where AI breaks IDOR hunting</h3>
+
+      <div class="callout danger">
+        <div class="callout-title">// Data exfiltration to AI providers</div>
+        <p>If you paste a target's JS bundle or live HTTP traffic into a third-party AI provider, <strong>you have just transmitted target data to an unrelated third party</strong>. Many programs treat this as a scope/privacy violation. Always: (a) check whether the program prohibits AI use on their assets, (b) use a provider with no-training-on-data guarantees (Anthropic API, OpenAI's enterprise tier, Azure OpenAI with content-filter off), (c) avoid feeding live user PII into prompts. Strip and anonymize first.</p>
+      </div>
+
+      <div class="callout warn">
+        <div class="callout-title">// Hallucinated endpoints</div>
+        <p>The #1 LLM failure mode in recon: confidently inventing endpoint paths that "look" right for the platform but don't exist. Symptom: your fuzzer returns 404 across every "AI-discovered" path. Fix: always require the LLM to quote the source line where the endpoint appears, and verify the quote exists.</p>
+      </div>
+
+      <div class="callout warn">
+        <div class="callout-title">// False-positive flood</div>
+        <p>"Looks like an IDOR" from an LLM is roughly as reliable as "looks like an IDOR" from a junior pentester on day one. Without manually running the two-account loop, you'll generate noise that wastes program triage capacity and your own credibility. Confirmation is non-negotiable.</p>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-title">// The X03:2025 irony</div>
+        <p>The OWASP Top 10:2025 includes an honorable-mention category — <strong>X03:2025 Inappropriate Trust in AI Generated Code</strong> ("vibe coding") — explicitly calling out that developers shipping AI-generated code without review are now <em>introducing</em> the very access-control bugs we hunt for. Translation: the supply of IDORs is going up, not down. Modern AI helps the defenders write more code faster than they can review it; that surplus is your bounty pool.</p>
+      </div>
+
+      <h3><span class="num">→</span>A recommended human-in-the-loop workflow</h3>
+      <p>Integrating AI into the two-account methodology without breaking it:</p>
+
+      <div class="checklist">
+        <div class="checklist-title">The 2026 IDOR loop with AI inserted</div>
+        <ul class="checklist-items">
+          <li><strong>Recon</strong> — LLM extracts endpoints from JS / OpenAPI / mobile decompile. <em>You</em> spot-check and prune hallucinations.</li>
+          <li><strong>Triage</strong> — LLM ranks endpoints by IDOR likelihood given parameter shapes. <em>You</em> pick the top 10 to test.</li>
+          <li><strong>Two-account loop</strong> — entirely manual. AI does not touch this step. Run Burp/Caido + Autorize as in section 03.</li>
+          <li><strong>Bypass brainstorming</strong> — when manual hits 403, ask AI for "20 variants of this request to try." Run them yourself; don't trust AI's "this one works" claim.</li>
+          <li><strong>Confirmation</strong> — entirely manual. Two screenshots, both accounts, real distinguishable data.</li>
+          <li><strong>PoC scripting</strong> — AI scaffolds the script with hard caps. <em>You</em> read every line before running it.</li>
+          <li><strong>Report writing</strong> — AI drafts to structure. <em>You</em> edit for voice and verify every claim against the actual evidence.</li>
+        </ul>
+      </div>
+
+      <p>The pattern: AI compresses the <em>boundaries</em> of the workflow (recon → triage, finding → PoC, draft → report). The <em>core authorization-reasoning step</em> — where you actually decide a bug exists — stays human. That's the right division of labor in 2026, and it's likely to stay the right one through 2027.</p>
+    </section>
+
+
+    <!-- 09 REPORTING -->
+    <section class="section" id="reporting">
+      <div class="section-header">
+        <div class="section-num">// 09 &middot; Closeout</div>
+        <h2>Writing the Report</h2>
+        <p class="section-intro">A good IDOR PoC writes itself. A great report frames the bug in business-impact terms, anticipates the triager's questions, and saves them the back-and-forth that delays payout.</p>
+      </div>
+
+      <h3><span class="num">→</span>Report structure that gets paid fast</h3>
+      <ol class="bullet">
+        <li><strong>One-sentence summary.</strong> "Authenticated users can read any other user's invoices by changing the <code>user_id</code> path parameter on <code>GET /api/v2/users/:id/invoices</code>."</li>
+        <li><strong>Severity claim with CVSS vector.</strong> Give your suggested CVSS but expect to negotiate. <code>CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N</code> for read-only horizontal PII = ~6.5 (Medium); add I:H and you're at High; cross-tenant or PII-at-scale and you're at Critical.</li>
+        <li><strong>Steps to reproduce.</strong> Numbered list. Include both accounts' setup, both tokens (redacted), the exact request, and the exact response. Don't make the triager assemble it.</li>
+        <li><strong>Proof of concept.</strong> Two screenshots minimum: (a) the legitimate request from Account B showing B's data, (b) the unauthorized request from Account A returning the same B data. If the PoC is a script, attach it but keep it ≤5 records.</li>
+        <li><strong>Impact.</strong> Quantify. "All 9,847 user IDs in the visible range return profile data including email, phone, real name, and onboarding answers." Mass exfiltration is what bumps the bounty.</li>
+        <li><strong>Suggested remediation.</strong> Brief. "Add a server-side check that <code>request.user.id == params['user_id']</code> or that the requesting user has admin privileges on the target's tenant." You're not consulting; you're being polite.</li>
+      </ol>
+
+      <h3><span class="num">→</span>Common triager pushback &amp; how to pre-empt it</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pushback</th><th>How to head it off</th></tr></thead>
+          <tbody>
+            <tr><td>"This is intended behavior — both users are in the same team"</td><td>Test cross-tenant from the start. Show that <em>different organization</em> IDs leak too.</td></tr>
+            <tr><td>"You need the victim's UUID — that's not predictable"</td><td>Show <em>how</em> you obtained the UUID from a public-facing endpoint, in your reproduction steps.</td></tr>
+            <tr><td>"This requires the victim's email"</td><td>Show the email is harvestable from a sibling endpoint, OSINT, or a public profile.</td></tr>
+            <tr><td>"Low impact — just non-sensitive fields"</td><td>Enumerate every field returned. Highlight anything PII, financial, or auth-adjacent.</td></tr>
+            <tr><td>"This is a duplicate"</td><td>Cite your timestamps. Note any variant you found that the duplicate didn't cover.</td></tr>
+            <tr><td>"Out of scope"</td><td>Re-read scope before reporting. If the endpoint is on a host marked in-scope, quote it.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3><span class="num">→</span>Bounty range expectations</h3>
+      <p>Rough 2024-2025 market on mid-tier private programs (your mileage varies wildly by program size, asset criticality, and chain depth):</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>IDOR shape</th><th>Typical bounty</th></tr></thead>
+          <tbody>
+            <tr><td>Horizontal read, low-sensitivity fields</td><td>$100 - $500</td></tr>
+            <tr><td>Horizontal read, full PII (email, phone, name)</td><td>$500 - $2,500</td></tr>
+            <tr><td>Horizontal update / mutation (settings, comments)</td><td>$1,000 - $3,500</td></tr>
+            <tr><td>IDOR chained to account takeover</td><td>$3,000 - $10,000+</td></tr>
+            <tr><td>Cross-tenant breach (SaaS multi-tenant)</td><td>$5,000 - $25,000+</td></tr>
+            <tr><td>Vertical (low-priv → admin operation)</td><td>$5,000 - $20,000+</td></tr>
+            <tr><td>Mass-extraction via GraphQL aliasing + missing rate limit</td><td>$5,000 - $30,000+</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+
+    <!-- 10 RESOURCES -->
+    <section class="section" id="resources">
+      <div class="section-header">
+        <div class="section-num">// 10 &middot; Closeout</div>
+        <h2>Practice &amp; Resources</h2>
+        <p class="section-intro">A curated list. Every link below is worth your time; everything else is noise.</p>
+      </div>
+
+      <h3><span class="num">→</span>Labs to grind</h3>
+      <div class="resources">
+        <div class="res-card">
+          <div class="res-card-tag">// Lab &middot; free</div>
+          <div class="res-card-title">PortSwigger Web Security Academy — Access Control</div>
+          <div class="res-card-desc">Thirteen labs covering IDOR, vertical/horizontal escalation, header-based bypass, method tampering, multi-step flaws. The single best starting point.</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-tag">// Lab &middot; paid</div>
+          <div class="res-card-title">HackTheBox Academy — API Attacks &amp; Bug Bounty Hunter path</div>
+          <div class="res-card-desc">Structured curriculum with hands-on machines. The API track in particular has strong IDOR/BOLA labs.</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-tag">// Lab &middot; free</div>
+          <div class="res-card-title">crAPI (Completely Ridiculous API)</div>
+          <div class="res-card-desc">OWASP's intentionally-vulnerable API lab. Multiple BOLA scenarios, GraphQL endpoint, mobile-style API surface. Run locally in Docker.</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-tag">// Lab &middot; free</div>
+          <div class="res-card-title">VAmPI</div>
+          <div class="res-card-desc">Vulnerable REST API in Python — BOLA, BFLA, mass assignment. Tiny footprint, ideal for testing tooling.</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-tag">// Lab &middot; free</div>
+          <div class="res-card-title">Damn Vulnerable GraphQL Application (DVGA)</div>
+          <div class="res-card-desc">The standard GraphQL practice target — introspection, aliasing, batching, IDOR, injection. Walk through every challenge.</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-tag">// Lab &middot; free</div>
+          <div class="res-card-title">PentesterLab</div>
+          <div class="res-card-desc">Smaller-scope, very targeted exercises. Their Access Control / API series complements PortSwigger nicely.</div>
+        </div>
+      </div>
+
+      <h3><span class="num">→</span>Reading list</h3>
+      <ul class="bullet">
+        <li><strong>OWASP API Security Top 10 (2023)</strong> — read the BOLA, BFLA, and Mass Assignment entries closely</li>
+        <li><strong>OWASP Web Security Testing Guide (WSTG)</strong> — particularly the API and GraphQL chapters</li>
+        <li><strong>PortSwigger Research blog</strong> — always worth reading; pioneered most modern web-bug techniques</li>
+        <li><strong>HackerOne Hacktivity</strong> — filter by "Improper Access Control" and "IDOR" weakness types; read 20 disclosed reports back-to-back</li>
+        <li><strong>Disclosed reports to study by name:</strong> H1 #291531 (GraphQL aliased IDOR PII), #1064543 (GitLab introspection → admin mutations), #1016122 (alias rate-limit bypass), #1987489 (BFLA mass enumeration)</li>
+        <li><strong>"Web Application Hacker's Handbook 2"</strong> by Stuttard &amp; Pinto — dated in places but the access-control chapter is still essential reading</li>
+      </ul>
+
+      <h3><span class="num">→</span>Hunters worth following</h3>
+      <ul class="bullet">
+        <li><strong>@Rhynorater</strong> — Critical Thinking podcast; broad bug-bounty methodology</li>
+        <li><strong>@NahamSec</strong> — recon-heavy, lots of methodology streams</li>
+        <li><strong>@stokfredrik</strong> — practical write-ups and walkthroughs on YouTube</li>
+        <li><strong>@bagipro / @samwcyo</strong> — write-ups that show how chained access-control bugs become criticals</li>
+        <li><strong>@bnchandrapal</strong> — frequent GraphQL/API findings</li>
+        <li><strong>@nullenc0de</strong> — recon &amp; access-control content</li>
+      </ul>
+
+      <h3><span class="num">→</span>Wordlists worth keeping</h3>
+      <ul class="bullet">
+        <li><strong>SecLists/Discovery/Web-Content/api</strong> — endpoint discovery</li>
+        <li><strong>SecLists/Discovery/Web-Content/burp-parameter-names.txt</strong> — Param Miner and Arjun fodder</li>
+        <li><strong>assetnote/wordlists</strong> — high-signal modern wordlists curated for active recon</li>
+        <li><strong>SecLists/Fuzzing/User-Agents</strong> — sometimes a different UA gives a different code path</li>
+      </ul>
+
+      <h3><span class="num">→</span>One-pager: the IDOR checklist</h3>
+      <div class="checklist">
+        <div class="checklist-title">Print-and-tape-to-monitor edition</div>
+        <ul class="checklist-items">
+          <li><strong>Two accounts</strong> live, both populated with distinguishable data</li>
+          <li><strong>Burp + Autorize</strong> running, second token configured</li>
+          <li>For every endpoint: <strong>swap the ID</strong>. Path, query, body, header, cookie.</li>
+          <li>For every endpoint: <strong>swap the method</strong>. GET, POST, PUT, PATCH, DELETE, HEAD, FOO.</li>
+          <li>For every blocked endpoint: try the <strong>path-normalization variants</strong> (slash, dot, encoding, extension).</li>
+          <li>For every blocked endpoint: try the <strong>header-injection bypasses</strong> (X-Original-URL, X-Forwarded-For = 127.0.0.1).</li>
+          <li>For every parameter: try <strong>array, object, type-confused</strong> values.</li>
+          <li>For every UUID/random ID: hunt where it <strong>leaks publicly</strong> before giving up.</li>
+          <li><strong>GraphQL?</strong> Try introspection → aliased batch → nested fields → mutations.</li>
+          <li>Found one? <strong>Check the chain</strong> — does it enable ATO, mass extraction, cross-tenant?</li>
+        </ul>
+      </div>
+    </section>
+
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="footer-warn">
+        <div class="footer-warn-title">// Authorization &middot; the only rule that matters</div>
+        <p>Every technique in this guide is for use only against systems whose owners have <em>explicitly</em> authorized you to test — through a published bug bounty program, a vulnerability disclosure policy, or a written engagement scope. Out-of-scope testing is unauthorized access. The same word that describes the bug class also describes what you'd be doing without authorization.</p>
+      </div>
+      <p>Built with sources from <strong>OWASP Top 10:2025 (RC1, Nov 2025)</strong>, OWASP API Security Top 10:2023, PortSwigger Web Security Academy, HackerOne Hacktivity disclosed reports (incl. #291531, #1016122, #1064543, #1987489), Lorikeet Security and 0xrafasec GraphQL alias-batching research, Cloudflare Project Glasswing &amp; <code>evilsocket/audit</code> on multi-agent vuln discovery, Caido / PentestGPT / ZeroPath / Chatio tooling docs, and bug bounty community writeups (2024-2026).</p>
+      <p style="margin-top: 12px; color: var(--text-muted); font-size: 12px;">// IDOR.guide &middot; v.2026 &middot; OWASP 2025-aligned &middot; for educational and authorized bug bounty use only</p>
+    </footer>
+
+  </main>
+
+</div>
+
+</body>
+</html>
