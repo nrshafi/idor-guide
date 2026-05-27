@@ -3,6 +3,7 @@
 A practical, opinionated field guide to finding **Insecure Direct Object References** in real bug bounty programs. From your first `?id=123` to chained GraphQL alias-batch extractions — with current 2024-2026 techniques, real disclosed reports, and the modern tooling stack.
 
 **Live guide:** [https://nrshafi.github.io/idor-guide/](https://nrshafi.github.io/idor-guide/)
+**One-page cheatsheet:** [https://nrshafi.github.io/idor-guide/cheatsheet.html](https://nrshafi.github.io/idor-guide/cheatsheet.html) &middot; *(print-optimized desk reference)*
 
 ---
 
@@ -46,7 +47,8 @@ The guide is structured as 11 progressive sections grouped into four phases:
 
 ### View the live version
 
-[https://nrshafi.github.io/idor-guide/](https://nrshafi.github.io/idor-guide/)
+- **Full guide:** [https://nrshafi.github.io/idor-guide/](https://nrshafi.github.io/idor-guide/)
+- **One-page cheatsheet:** [https://nrshafi.github.io/idor-guide/cheatsheet.html](https://nrshafi.github.io/idor-guide/cheatsheet.html)
 
 ### View locally
 
@@ -54,12 +56,17 @@ The guide is structured as 11 progressive sections grouped into four phases:
 git clone https://github.com/nrshafi/idor-guide.git
 cd idor-guide
 # Open in your browser:
-open index.html        # macOS
+open index.html        # macOS — main guide
+open cheatsheet.html   # macOS — printable cheatsheet
 xdg-open index.html    # Linux
 start index.html       # Windows
 ```
 
 The HTML is fully self-contained — inline CSS, Google Fonts loaded via CDN, no build step, no dependencies.
+
+### Printing the cheatsheet
+
+The cheatsheet ships with a dedicated print stylesheet that flips the dark screen view to a clean black-on-white A4-landscape layout. Open `cheatsheet.html` in any browser, click **Print / Save PDF**, or use your browser's print dialog. The layout is optimized to fit a single landscape A4 page.
 
 ## Sources & Acknowledgments
 
