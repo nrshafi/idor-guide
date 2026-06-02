@@ -42,6 +42,7 @@ The guide is structured as 11 progressive sections grouped into four phases:
 - **AI-Assisted IDOR Hunting (Section 08).** A full section on where modern AI tooling helps the 2026 hunter — and where it actively breaks the workflow. Covers Caido Shift & Assistant, Burp AI, PentestGPT Agentic v1.0, the Cloudflare Glasswing multi-agent pattern (and the open-source `evilsocket/audit` reimplementation), AI prompt templates with safety caps, and a human-in-the-loop workflow checklist.
 - **Modern bypass catalog.** Unicode/whitespace path tricks, type confusion, parameter pollution variants, header-based bypasses, and version-downgrade endpoint hunting.
 - **2024-2026 disclosed reports cited.** Including HackerOne #291531, #1016122, #1064543, #1987489, and the August 2024 IDOR exposing 500K+ US passport scans.
+- **Polished, self-contained reading experience.** Copy-to-clipboard on every code block, active-section sidebar tracking, a collapsible mobile nav, a reading-progress bar, and back-to-top — plus full SEO/social metadata (Open Graph, Twitter cards, JSON-LD), an inline-SVG favicon, and accessibility passes (skip link, ARIA, `prefers-reduced-motion`). All in dependency-free vanilla JS. Now **MIT-licensed**.
 
 ## Quick Start
 
@@ -62,7 +63,7 @@ xdg-open index.html    # Linux
 start index.html       # Windows
 ```
 
-The HTML is fully self-contained — inline CSS, Google Fonts loaded via CDN, no build step, no dependencies.
+The HTML is fully self-contained — inline CSS, a small inline-JS enhancement layer (copy buttons, active-section nav, reading progress, mobile menu), Google Fonts loaded via CDN, no build step, and no third-party libraries.
 
 ### Printing the cheatsheet
 
@@ -88,7 +89,7 @@ Out-of-scope testing is unauthorized access. The same word that describes the bu
 
 ## License
 
-This guide is offered for educational use in authorized bug bounty research. If you'd like to add a formal open-source license (MIT, CC-BY, etc.), open an issue or PR.
+Released under the [MIT License](LICENSE) — free to use, modify, and share, with the copyright notice preserved. The guide's techniques are intended for educational use in **authorized** bug bounty research only (see *Authorization & Ethics* above).
 
 ## Contributing
 
