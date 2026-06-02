@@ -4,6 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IDOR Hunting — Zero to Advanced</title>
+<meta name="description" content="A practical, current field guide to finding IDOR / BOLA (Broken Object Level Authorization) bugs in bug bounty programs — recon, testing methodology, bypasses, GraphQL, chaining, tooling, and AI-assisted hunting. Aligned to OWASP 2025.">
+<meta name="keywords" content="IDOR, BOLA, broken access control, broken object level authorization, bug bounty, web security, API security, OWASP, GraphQL IDOR, access control testing, penetration testing">
+<meta name="author" content="Nafiur Rahman Shafi">
+<meta name="robots" content="index, follow">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0a0c11">
+<link rel="canonical" href="https://nrshafi.github.io/idor-guide/">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<!-- Open Graph -->
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="IDOR.guide">
+<meta property="og:title" content="IDOR Hunting — Zero to Advanced">
+<meta property="og:description" content="A practical, opinionated field guide to finding Insecure Direct Object References in real bug bounty programs — from your first ?id=123 to chained GraphQL alias-batch extractions. OWASP 2025-aligned.">
+<meta property="og:url" content="https://nrshafi.github.io/idor-guide/">
+<meta property="og:image" content="https://nrshafi.github.io/idor-guide/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="IDOR Hunting — Zero to Advanced. A bug bounty field guide, OWASP 2025-aligned.">
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="IDOR Hunting — Zero to Advanced">
+<meta name="twitter:description" content="A practical field guide to finding IDOR / BOLA bugs in bug bounty programs. Recon, methodology, bypasses, GraphQL, chaining, tooling, AI-assisted hunting. OWASP 2025-aligned.">
+<meta name="twitter:image" content="https://nrshafi.github.io/idor-guide/og-image.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -768,47 +791,235 @@ tr:hover td { background: rgba(255, 255, 255, 0.02); }
   .hero-stat:last-child { border-bottom: none; }
   .idor-flow { grid-template-columns: 1fr; }
 }
+
+/* ============================================================
+   Enhancements — interactivity, a11y, navigation
+   (progressive: collapse behavior is gated behind html.js)
+   ============================================================ */
+
+/* Skip-to-content link */
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 1000;
+  transform: translateY(-160%);
+  background: var(--accent);
+  color: #0a0c11;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 10px 16px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: transform 0.18s ease;
+}
+.skip-link:focus { transform: translateY(0); outline: 2px solid #fff; outline-offset: 2px; }
+
+/* Reading-progress bar */
+#reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0;
+  background: linear-gradient(90deg, var(--accent), var(--amber));
+  z-index: 900;
+  transition: width 0.1s linear;
+}
+
+/* Sidebar header row + mobile nav toggle */
+.sidebar-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.nav-toggle {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: var(--bg-elev);
+  border: 1px solid var(--border-light);
+  padding: 9px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.nav-toggle:hover { color: var(--text); border-color: var(--accent); }
+.nav-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.nav-toggle-bars, .nav-toggle-bars::before, .nav-toggle-bars::after {
+  display: block; width: 16px; height: 2px; background: currentColor; border-radius: 2px;
+}
+.nav-toggle-bars { position: relative; }
+.nav-toggle-bars::before, .nav-toggle-bars::after { content: ''; position: absolute; left: 0; }
+.nav-toggle-bars::before { top: -5px; }
+.nav-toggle-bars::after { top: 5px; }
+
+/* Active section highlight (scrollspy) */
+.nav-list a.active {
+  color: var(--text);
+  background: var(--bg-elev);
+  border-left-color: var(--accent);
+}
+.nav-list a.active .nav-num { color: var(--accent); }
+
+/* Sidebar cheatsheet link */
+.nav-cheatsheet { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--border); }
+.nav-cheatsheet a {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  color: var(--text-secondary); border-bottom: none;
+}
+.nav-cheatsheet a:hover { color: var(--accent); }
+
+/* Hero call-to-action buttons */
+.hero-cta { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 36px; }
+.btn-primary, .btn-ghost {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: 'Space Grotesk', sans-serif; font-size: 14.5px; font-weight: 600;
+  padding: 11px 22px; border-radius: 7px; border: 1px solid transparent;
+  cursor: pointer; transition: all 0.15s ease;
+}
+.btn-primary { background: var(--accent); color: #0a0c11; }
+.btn-primary:hover { background: #ff855c; }
+.btn-ghost { background: transparent; color: var(--text); border-color: var(--border-light); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Copy-to-clipboard button on code blocks */
+.code-header-actions { display: flex; align-items: center; gap: 10px; }
+.copy-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.1em; line-height: 1.4;
+  color: var(--text-secondary); background: transparent;
+  border: 1px solid var(--border-light); padding: 3px 9px; border-radius: 4px;
+  cursor: pointer; transition: all 0.15s ease;
+}
+.copy-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+.copy-btn:hover { color: var(--text); border-color: var(--accent); background: var(--accent-soft); }
+.copy-btn.copied { color: var(--green); border-color: var(--green); background: var(--green-soft); }
+.copy-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.code-block.has-floating-copy { position: relative; }
+.has-floating-copy .copy-btn { position: absolute; top: 10px; right: 12px; background: var(--bg-elev); }
+
+/* Back-to-top button */
+#back-to-top {
+  position: fixed; bottom: 26px; right: 26px; z-index: 800;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--accent); color: #0a0c11; border: none; cursor: pointer;
+  font-size: 20px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; visibility: hidden; transform: translateY(10px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+#back-to-top.show { opacity: 1; visibility: visible; transform: translateY(0); }
+#back-to-top:hover { background: #ff855c; }
+#back-to-top:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* Mobile nav collapse — only active when JS is present */
+@media (max-width: 1024px) {
+  .js .nav-toggle { display: inline-flex; }
+  .js .sidebar-nav {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.2s ease;
+  }
+  .js .sidebar.nav-open .sidebar-nav {
+    max-height: 80vh;
+    overflow-y: auto;
+    opacity: 1;
+    margin-top: 18px;
+  }
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 </style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "IDOR Hunting — Zero to Advanced",
+  "description": "A practical, opinionated field guide to finding Insecure Direct Object References (IDOR / BOLA) in real bug bounty programs, from fundamentals to advanced chaining and AI-assisted hunting. Aligned to OWASP Top 10:2025 and OWASP API Security Top 10:2023.",
+  "author": { "@type": "Person", "name": "Nafiur Rahman Shafi", "url": "https://github.com/nrshafi" },
+  "publisher": { "@type": "Organization", "name": "IDOR.guide" },
+  "datePublished": "2026-01-01",
+  "dateModified": "2026-06-03",
+  "image": "https://nrshafi.github.io/idor-guide/og-image.png",
+  "mainEntityOfPage": "https://nrshafi.github.io/idor-guide/",
+  "keywords": "IDOR, BOLA, broken access control, bug bounty, API security, OWASP, GraphQL",
+  "inLanguage": "en",
+  "about": { "@type": "Thing", "name": "Insecure Direct Object Reference (Broken Object Level Authorization)" }
+}
+</script>
 </head>
 <body>
+
+<a class="skip-link" href="#main-content">Skip to content</a>
+<div id="reading-progress" aria-hidden="true"></div>
 
 <div class="layout">
 
   <!-- SIDEBAR NAV -->
   <aside class="sidebar">
-    <div class="sidebar-brand">// IDOR.guide</div>
-    <div class="sidebar-tag">v.2026 // updated</div>
+    <div class="sidebar-head">
+      <div>
+        <div class="sidebar-brand">// IDOR.guide</div>
+        <div class="sidebar-tag">v.2026 // updated</div>
+      </div>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="sidebar-nav">
+        <span class="nav-toggle-bars" aria-hidden="true"></span> Sections
+      </button>
+    </div>
 
-    <div class="nav-section">Foundations</div>
-    <ul class="nav-list">
-      <li><a href="#fundamentals"><span class="nav-num">00</span> Fundamentals</a></li>
-      <li><a href="#recon"><span class="nav-num">01</span> Recon &amp; Targets</a></li>
-      <li><a href="#candidates"><span class="nav-num">02</span> Identifying Candidates</a></li>
-    </ul>
+    <nav id="sidebar-nav" class="sidebar-nav" aria-label="Guide sections">
+      <div class="nav-section">Foundations</div>
+      <ul class="nav-list">
+        <li><a href="#fundamentals"><span class="nav-num">00</span> Fundamentals</a></li>
+        <li><a href="#recon"><span class="nav-num">01</span> Recon &amp; Targets</a></li>
+        <li><a href="#candidates"><span class="nav-num">02</span> Identifying Candidates</a></li>
+      </ul>
 
-    <div class="nav-section">Hunting</div>
-    <ul class="nav-list">
-      <li><a href="#methodology"><span class="nav-num">03</span> Testing Methodology</a></li>
-      <li><a href="#bypasses"><span class="nav-num">04</span> Bypass Techniques</a></li>
-      <li><a href="#graphql"><span class="nav-num">05</span> GraphQL IDOR</a></li>
-    </ul>
+      <div class="nav-section">Hunting</div>
+      <ul class="nav-list">
+        <li><a href="#methodology"><span class="nav-num">03</span> Testing Methodology</a></li>
+        <li><a href="#bypasses"><span class="nav-num">04</span> Bypass Techniques</a></li>
+        <li><a href="#graphql"><span class="nav-num">05</span> GraphQL IDOR</a></li>
+      </ul>
 
-    <div class="nav-section">Advanced</div>
-    <ul class="nav-list">
-      <li><a href="#advanced"><span class="nav-num">06</span> Advanced Techniques</a></li>
-      <li><a href="#tooling"><span class="nav-num">07</span> Tooling &amp; Automation</a></li>
-      <li><a href="#ai"><span class="nav-num">08</span> AI-Assisted Hunting</a></li>
-    </ul>
+      <div class="nav-section">Advanced</div>
+      <ul class="nav-list">
+        <li><a href="#advanced"><span class="nav-num">06</span> Advanced Techniques</a></li>
+        <li><a href="#tooling"><span class="nav-num">07</span> Tooling &amp; Automation</a></li>
+        <li><a href="#ai"><span class="nav-num">08</span> AI-Assisted Hunting</a></li>
+      </ul>
 
-    <div class="nav-section">Closeout</div>
-    <ul class="nav-list">
-      <li><a href="#reporting"><span class="nav-num">09</span> Writing the Report</a></li>
-      <li><a href="#resources"><span class="nav-num">10</span> Practice &amp; Resources</a></li>
-    </ul>
+      <div class="nav-section">Closeout</div>
+      <ul class="nav-list">
+        <li><a href="#reporting"><span class="nav-num">09</span> Writing the Report</a></li>
+        <li><a href="#resources"><span class="nav-num">10</span> Practice &amp; Resources</a></li>
+      </ul>
+
+      <div class="nav-cheatsheet">
+        <a href="cheatsheet.html">→ One-page cheatsheet</a>
+      </div>
+    </nav>
   </aside>
 
   <!-- MAIN -->
-  <main class="content">
+  <main class="content" id="main-content" tabindex="-1">
 
     <!-- HERO -->
     <header class="hero">
@@ -823,8 +1034,13 @@ tr:hover td { background: rgba(255, 255, 255, 0.02); }
       <h1>IDOR&nbsp;Hunting<br><span class="accent">Zero&nbsp;to&nbsp;Advanced</span></h1>
 
       <p class="hero-sub">
-        A practical, opinionated field guide to finding <strong>Insecure Direct Object References</strong> in real bug bounty programs. From your first <code>?id=123</code> to chained GraphQL alias-batch extractions — with current 2024-2025 techniques, real disclosed reports, and the modern tooling stack.
+        A practical, opinionated field guide to finding <strong>Insecure Direct Object References</strong> in real bug bounty programs. From your first <code>?id=123</code> to chained GraphQL alias-batch extractions — with current 2024-2026 techniques, real disclosed reports, and the modern tooling stack.
       </p>
+
+      <div class="hero-cta">
+        <a class="btn-primary" href="#fundamentals">Start the guide ↓</a>
+        <a class="btn-ghost" href="cheatsheet.html">One-page cheatsheet →</a>
+      </div>
 
       <div class="hero-stats">
         <div class="hero-stat">
@@ -1840,6 +2056,11 @@ Output a single .py file. No commentary.</pre>
           <li>Found one? <strong>Check the chain</strong> — does it enable ATO, mass extraction, cross-tenant?</li>
         </ul>
       </div>
+
+      <div class="callout pro">
+        <div class="callout-title">// Keep it on your desk</div>
+        <p>Want this condensed onto a single printable page? The <a href="cheatsheet.html">standalone desk-reference cheatsheet</a> packs the entire methodology — the two-account loop, method matrix, bypass catalog, GraphQL flow, and reporting checklist — into one A4-landscape sheet. Open it and hit <strong>Print / Save&nbsp;PDF</strong>.</p>
+      </div>
     </section>
 
 
@@ -1856,6 +2077,137 @@ Output a single .py file. No commentary.</pre>
   </main>
 
 </div>
+
+<button id="back-to-top" type="button" aria-label="Back to top" title="Back to top">↑</button>
+
+<script>
+(function () {
+  'use strict';
+  document.documentElement.classList.add('js');
+
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  // ---- Reading-progress bar ----
+  var bar = document.getElementById('reading-progress');
+  var toTop = document.getElementById('back-to-top');
+  function onScroll() {
+    var doc = document.documentElement;
+    var max = doc.scrollHeight - doc.clientHeight;
+    var pct = max > 0 ? (doc.scrollTop / max) * 100 : 0;
+    if (bar) bar.style.width = pct + '%';
+    if (toTop) toTop.classList.toggle('show', (window.scrollY || doc.scrollTop) > 600);
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll, { passive: true });
+  onScroll();
+
+  // ---- Back to top ----
+  if (toTop) {
+    toTop.addEventListener('click', function () {
+      window.scrollTo({ top: 0, behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+    });
+  }
+
+  // ---- Copy-to-clipboard on every code block ----
+  var COPY_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+
+  function fallbackCopy(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'absolute';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(true); } catch (e) { done(false); }
+    document.body.removeChild(ta);
+  }
+
+  document.querySelectorAll('.code-block').forEach(function (block) {
+    var pre = block.querySelector('pre');
+    if (!pre) return;
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy-btn';
+    btn.setAttribute('aria-label', 'Copy code to clipboard');
+    btn.innerHTML = COPY_SVG + '<span class="copy-label">Copy</span>';
+    var label = btn.querySelector('.copy-label');
+
+    var header = block.querySelector('.code-header');
+    if (header) {
+      var actions = document.createElement('div');
+      actions.className = 'code-header-actions';
+      var tag = header.querySelector('.code-header-tag');
+      if (tag) actions.appendChild(tag);
+      actions.appendChild(btn);
+      header.appendChild(actions);
+    } else {
+      block.classList.add('has-floating-copy');
+      block.appendChild(btn);
+    }
+
+    btn.addEventListener('click', function () {
+      var text = pre.textContent.replace(/\s+$/, '') + '\n';
+      var done = function (ok) {
+        if (!ok) return;
+        btn.classList.add('copied');
+        label.textContent = 'Copied';
+        window.setTimeout(function () {
+          btn.classList.remove('copied');
+          label.textContent = 'Copy';
+        }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { done(true); }, function () { fallbackCopy(text, done); });
+      } else {
+        fallbackCopy(text, done);
+      }
+    });
+  });
+
+  // ---- Scrollspy: highlight the section currently in view ----
+  var navLinks = Array.prototype.slice.call(document.querySelectorAll('.nav-list a[href^="#"]'));
+  var linkFor = {};
+  navLinks.forEach(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    if (id) linkFor[id] = a;
+  });
+  var sections = document.querySelectorAll('section.section[id]');
+  if ('IntersectionObserver' in window && sections.length) {
+    var spy = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        var active = linkFor[en.target.id];
+        if (!active) return;
+        navLinks.forEach(function (a) { a.classList.remove('active'); a.removeAttribute('aria-current'); });
+        active.classList.add('active');
+        active.setAttribute('aria-current', 'true');
+      });
+    }, { rootMargin: '-15% 0px -75% 0px', threshold: 0 });
+    sections.forEach(function (s) { spy.observe(s); });
+  }
+
+  // ---- Mobile nav toggle ----
+  var sidebar = document.querySelector('.sidebar');
+  var toggle = document.querySelector('.nav-toggle');
+  if (sidebar && toggle) {
+    toggle.addEventListener('click', function () {
+      var open = sidebar.classList.toggle('nav-open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    var mq = window.matchMedia('(max-width: 1024px)');
+    navLinks.forEach(function (a) {
+      a.addEventListener('click', function () {
+        if (mq.matches) {
+          sidebar.classList.remove('nav-open');
+          toggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    });
+  }
+})();
+</script>
 
 </body>
 </html>

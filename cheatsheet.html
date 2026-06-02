@@ -4,6 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IDOR Cheatsheet — Desk Reference</title>
+<meta name="description" content="A printable one-page IDOR / BOLA desk reference: the two-account loop, per-endpoint method matrix, where identifiers hide, bypass catalog, GraphQL flow, and a reporting checklist. OWASP 2025-aligned.">
+<meta name="author" content="Nafiur Rahman Shafi">
+<meta name="robots" content="index, follow">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0a0c11">
+<link rel="canonical" href="https://nrshafi.github.io/idor-guide/cheatsheet.html">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<!-- Open Graph -->
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="IDOR.guide">
+<meta property="og:title" content="IDOR Cheatsheet — One-Page Desk Reference">
+<meta property="og:description" content="The entire IDOR hunting methodology condensed onto a single printable A4-landscape sheet. OWASP 2025-aligned.">
+<meta property="og:url" content="https://nrshafi.github.io/idor-guide/cheatsheet.html">
+<meta property="og:image" content="https://nrshafi.github.io/idor-guide/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="IDOR Cheatsheet — One-Page Desk Reference">
+<meta name="twitter:description" content="The entire IDOR hunting methodology on a single printable sheet. OWASP 2025-aligned.">
+<meta name="twitter:image" content="https://nrshafi.github.io/idor-guide/og-image.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -40,6 +60,27 @@ body {
   max-width: 1400px;
   margin: 0 auto;
 }
+
+/* Skip-to-content link */
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 1000;
+  transform: translateY(-160%);
+  background: var(--accent);
+  color: #0a0c11;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 10px 16px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: transform 0.18s ease;
+}
+.skip-link:focus { transform: translateY(0); outline: 2px solid #fff; outline-offset: 2px; }
+#cheatsheet-main:focus { outline: none; }
 
 /* Header */
 .head {
@@ -377,6 +418,7 @@ tr:last-child td { border-bottom: none; }
   .head-sub, .head-meta { color: #444; }
   .head-meta a { color: #c2410c; }
   .print-btn { display: none; }
+  .skip-link { display: none; }
 
   .grid { gap: 8px; }
 
@@ -450,10 +492,21 @@ tr:last-child td { border-bottom: none; }
   .foot { border-top: 1px solid #000; color: #444; }
   .foot a { color: #c2410c; }
 }
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
 </style>
 </head>
 <body>
 
+<a class="skip-link" href="#cheatsheet-main">Skip to content</a>
 <div class="head">
   <div>
     <div class="head-title">IDOR <span class="accent">Cheatsheet</span></div>
@@ -466,7 +519,7 @@ tr:last-child td { border-bottom: none; }
   </div>
 </div>
 
-<div class="grid">
+<div class="grid" id="cheatsheet-main" tabindex="-1">
 
   <!-- METHODOLOGY -->
   <div class="card">
