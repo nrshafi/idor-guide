@@ -534,7 +534,7 @@ tr:last-child td { border-bottom: none; }
       <li><strong>Swap to A's session.</strong> Replay B's requests with A's token/cookie.</li>
       <li><strong>Confirm.</strong> Success = A retrieves/mutates B's data.</li>
     </ol>
-    <div class="card-sub" style="margin-top:8px;">Burp Match &amp; Replace auto-swaps the Authorization header. <strong style="color:var(--accent);">Autorize</strong> automates the entire loop.</div>
+    <div class="card-sub" style="margin-top:8px;">Test <strong>3 identities</strong>: owner · other user · unauthenticated. <strong style="color:var(--accent);">Autorize</strong> automates the loop; Match &amp; Replace auto-swaps the token.</div>
   </div>
 
   <!-- METHOD MATRIX -->
@@ -580,14 +580,17 @@ tr:last-child td { border-bottom: none; }
       <span class="card-title">ID Formats &amp; Attack</span>
     </div>
     <table>
-      <tr><td><span class="pill g">int</span></td><td>enumerate freely</td></tr>
-      <tr><td><span class="pill a">UUIDv1</span></td><td>timestamp + MAC, predictable from one sample</td></tr>
-      <tr><td><span class="pill b">UUIDv4</span></td><td>random — hunt for leaks elsewhere</td></tr>
-      <tr><td><span class="pill a">base64</span></td><td>decode → enumerate → re-encode</td></tr>
-      <tr><td><span class="pill a">hash</span></td><td>often md5(uid) or md5(email), try inputs</td></tr>
+      <tr><td><span class="pill r">int</span></td><td>enumerate freely; top ID leaks total count</td></tr>
+      <tr><td><span class="pill r">base64 / hashid</span></td><td>reversible — decode, enumerate, re-encode</td></tr>
+      <tr><td><span class="pill r">ObjectID</span></td><td>4b ts + 5b per-process + 3b counter; 1 known id ⇒ predict</td></tr>
+      <tr><td><span class="pill a">UUIDv1</span></td><td>ts + MAC; sandwich attack (<code>guidtool</code>)</td></tr>
+      <tr><td><span class="pill a">snowflake</span></td><td>ms ts + worker/seq — narrow in a time window</td></tr>
+      <tr><td><span class="pill a">UUIDv7/ULID</span></td><td>ts non-secret; too random to enum, weak as a token</td></tr>
+      <tr><td><span class="pill a">hash</span></td><td>often md5(uid)/md5(email), try inputs</td></tr>
       <tr><td><span class="pill g">slug</span></td><td>OSINT usernames from comments / profiles</td></tr>
-      <tr><td><span class="pill r">snowflake</span></td><td>timestamp + machine — predictable in window</td></tr>
+      <tr><td><span class="pill b">UUIDv4/nanoid</span></td><td>random — hunt for leaks elsewhere</td></tr>
     </table>
+    <div class="card-sub" style="margin-top:6px;">Version nibble: <code>-1xxx-</code> time · <code>-4xxx-</code> random · <code>-7xxx-</code> ordered</div>
   </div>
 
   <!-- BYPASS: PATHS -->
@@ -679,10 +682,12 @@ tr:last-child td { border-bottom: none; }
   u100: user(id: <span class="id">7100</span>) { email phone }
 }</div>
     <ul class="tight" style="margin-top:8px;">
+      <li><strong>Introspection off?</strong> &nbsp; <code>graphw00f</code> fingerprint + <code>Clairvoyance</code> schema recovery</li>
       <li><strong>Field-level auth gaps</strong> &nbsp; check nested resolvers (<code>user.orders</code>, <code>user.paymentMethod</code>)</li>
+      <li><strong>node() back door</strong> &nbsp; retry blocked object via <code>node(id:"base64")</code></li>
+      <li><strong>Fragments</strong> &nbsp; re-request protected fields via fragment (directive bypass)</li>
       <li><strong>Mutations</strong> &nbsp; <code>updateUser</code>, <code>resetPassword</code>, <code>transferOwnership</code> with foreign IDs</li>
-      <li><strong>Hidden mutations</strong> &nbsp; introspection reveals admin ops accessible to low-priv</li>
-      <li><strong>Batch ops</strong> &nbsp; array of operations in one POST</li>
+      <li><strong>Batch / alias</strong> &nbsp; array of ops or N aliases in one POST</li>
     </ul>
   </div>
 
@@ -721,11 +726,11 @@ tr:last-child td { border-bottom: none; }
       </ul>
       <ul class="tight">
         <li><strong>ffuf</strong> &nbsp; endpoint fuzzer</li>
-        <li><strong>katana</strong> &nbsp; JS-aware crawler</li>
-        <li><strong>arjun</strong> &nbsp; param discovery</li>
-        <li><strong>jsluice</strong> &nbsp; JS bundle mining</li>
-        <li><strong>Clairvoyance</strong> &nbsp; GraphQL no-introspection</li>
-        <li><strong>nuclei</strong> &nbsp; templated scans</li>
+        <li><strong>katana / gau</strong> &nbsp; crawl + archived URLs</li>
+        <li><strong>arjun</strong> &nbsp; hidden param discovery</li>
+        <li><strong>jsluice / sourcemapper</strong> &nbsp; JS + .js.map mining</li>
+        <li><strong>graphw00f / Clairvoyance</strong> &nbsp; GraphQL recon</li>
+        <li><strong>mongo-objectid-predict</strong> &nbsp; ObjectID</li>
       </ul>
     </div>
   </div>
@@ -745,7 +750,7 @@ tr:last-child td { border-bottom: none; }
       <li><span class="pill r">manual</span> &nbsp; deciding a bug exists</li>
       <li><span class="pill r">never</span> &nbsp; paste victim PII / live tokens to AI providers</li>
     </ul>
-    <div class="card-sub" style="margin-top:8px;">Pattern: 2 different models — one finds, one disproves. Glasswing-style.</div>
+    <div class="card-sub" style="margin-top:8px;">Pattern: 2 different models — one finds, one disproves (swarm auditing, e.g. <code>evilsocket/audit</code>).</div>
   </div>
 
   <!-- REPORT -->
@@ -756,7 +761,7 @@ tr:last-child td { border-bottom: none; }
     </div>
     <ol class="steps">
       <li><strong>Summary</strong> &nbsp; one sentence, name the endpoint &amp; parameter</li>
-      <li><strong>Severity</strong> &nbsp; CVSS v3.1 vector with reasoning</li>
+      <li><strong>Severity</strong> &nbsp; CVSS v3.1 + v4.0 vector (v4 VC/VI/VA + SC/SI/SA fits cross-tenant)</li>
       <li><strong>Steps to Reproduce</strong> &nbsp; both accounts, both tokens (redacted), exact request</li>
       <li><strong>PoC</strong> &nbsp; 2 screenshots min; script ≤ 5 records</li>
       <li><strong>Impact</strong> &nbsp; quantify (n users, PII scope, cross-tenant?)</li>
@@ -804,18 +809,18 @@ tr:last-child td { border-bottom: none; }
       <span class="card-title">Pre-flight Checklist</span>
     </div>
     <ul class="check">
-      <li>Two accounts live &amp; populated</li>
-      <li>Burp + Autorize, second token configured</li>
-      <li>Swap ID in <strong>every</strong> location (path / query / body / header / cookie)</li>
+      <li>Two accounts live &amp; populated; test 3 identities (owner/other/anon)</li>
+      <li>Recon: source maps, archived URLs, hidden params</li>
+      <li><strong>Decode the ID</strong> (base64/hashid/ObjectID/UUIDv1) before enumerating</li>
+      <li>Swap ID in <strong>every</strong> location (path / query / body / header / cookie / JWT)</li>
       <li>Swap method (<strong>every</strong> verb, not just GET)</li>
-      <li>Try path-normalization variants on blocked endpoints</li>
-      <li>Try header-injection bypasses on blocked endpoints</li>
+      <li>Blocked? path-normalize + header bypass + ID-in-two-places</li>
       <li>Try array / object / type-confused parameter shapes</li>
-      <li>For UUID/random IDs: hunt where they leak publicly</li>
-      <li>GraphQL? &nbsp; introspect → alias → nested → mutations</li>
-      <li>Found one? &nbsp; <strong>check the chain</strong> (ATO / mass / cross-tenant)</li>
-      <li>Cap PoC at 5 records, never dump database</li>
-      <li>Re-read scope before reporting</li>
+      <li>UUID/random IDs: hunt where they leak publicly</li>
+      <li>No data echoed? check <strong>blind IDOR</strong> via side effects</li>
+      <li>GraphQL? &nbsp; fingerprint → alias → nested → node() → fragments → mutations</li>
+      <li>Found one? &nbsp; <strong>chain it</strong> (ATO / mass / cross-tenant); score CVSS 4.0</li>
+      <li>Cap PoC at 5 records · never dump DB · re-read scope</li>
     </ul>
   </div>
 

@@ -18,31 +18,37 @@ The guide is written for authorized bug bounty work only — every technique app
 The guide is structured as 11 progressive sections grouped into four phases:
 
 ### Foundations
-- **00 — Fundamentals** &nbsp; What IDOR actually is, horizontal vs vertical, OWASP placement, impact menu
-- **01 — Recon & Targets** &nbsp; Program selection, JS bundle mining, Swagger/GraphQL discovery, mobile APK extraction
-- **02 — Identifying Candidates** &nbsp; ID format guide (sequential, UUIDv1/v4, base64, hashes, slugs, snowflake), where IDs hide
+- **00 — Fundamentals** &nbsp; What IDOR actually is, horizontal vs vertical, the **IDOR/BOLA/BOPLA/BFLA** taxonomy, the "knowledge ≠ authorization" anti-pattern (with the RFC 9562 citation), a CWE map, OWASP 2025 placement, impact menu
+- **01 — Recon & Targets** &nbsp; Program selection, **source-map (`.js.map`) reconstruction**, a copy-paste recon pass (gau/waymore/katana/jsluice/arjun), Swagger/GraphQL/Postman discovery, mobile APK extraction
+- **02 — Identifying Candidates** &nbsp; Full modern ID-format guide with a **"predictable portion"** column — **MongoDB ObjectID deep-dive**, the **UUIDv1 sandwich attack**, UUIDv7/ULID/KSUID/nanoid/Snowflake/Stripe, **Hashids/Sqids are reversible**, JWT & ETag references, decode-before-you-dismiss
 
 ### Hunting
-- **03 — Testing Methodology** &nbsp; Two-account loop, Burp Match & Replace, Autorize/AuthMatrix workflow, method matrix
-- **04 — Bypass Techniques** &nbsp; HTTP verb tampering, path normalization, header injection, parameter pollution, type confusion, Unicode tricks
-- **05 — GraphQL IDOR** &nbsp; Introspection, nested-resolver gaps, alias batching for mass extraction & rate-limit bypass, mutations
-
+- **03 — Testing Methodology** &nbsp; Two-account loop, Match & Replace, the **three-identity test**, Autorize vs Auth Analyzer vs AuthMatrix (+ Caido plugins), method matrix, **blind-IDOR detection**, swap-and-revert verification
+- **04 — Bypass Techniques** &nbsp; Verb tampering, path normalization, header injection, parameter pollution, type confusion, Unicode tricks, **send the ID in two places**, **response-code oracles**
+- **05 — GraphQL IDOR** &nbsp; Introspection + **graphw00f/Clairvoyance recovery**, nested-resolver gaps, the **Relay `node()` back door**, **directive deception (fragment bypass)**, alias/array batching, mutations, **APQ vs safelisting**
 ### Advanced
-- **06 — Advanced Techniques** &nbsp; Chaining (IDOR→ATO, IDOR+race, IDOR+mass-assignment, IDOR+cache deception), WebSocket IDOR, mobile, UUID prediction
-- **07 — Tooling & Automation** &nbsp; Burp vs Caido, must-have extensions, CLI stack, safe Python automation
-- **08 — AI-Assisted Hunting (2026)** &nbsp; Where AI helps vs doesn't, LLM-augmented recon, AI proxies (Caido Shift, Burp AI, PentestGPT, Chatio), the multi-agent Glasswing pattern, critical caveats
+- **06 — Advanced Techniques** &nbsp; Chaining (IDOR→ATO, +race, +mass-assignment, +cache deception), the **Kia portal** real-world chain, **second-order (stored) IDOR**, WebSocket IDOR, mobile, predicting server-generated IDs
+- **07 — Tooling & Automation** &nbsp; Burp vs Caido (Automate/Workflows/Match & Replace + auth plugins), must-have extensions, a dedicated **GraphQL tool set**, **mobile tooling** (Frida 17.x note), expanded CLI stack, safe Python automation
+- **08 — AI-Assisted Hunting (2026)** &nbsp; Where AI helps vs doesn't, LLM-augmented recon, AI proxies (Caido Shift, Burp AI, PentestGPT, Chatio), the multi-agent swarm pattern (`evilsocket/audit`), the **autonomous-agent reality (XBOW #1 on HackerOne US 2025)**, critical caveats
 
 ### Closeout
-- **09 — Writing the Report** &nbsp; Structure, CVSS framing, triager-pushback pre-emption, 2024-2026 bounty ranges
-- **10 — Practice & Resources** &nbsp; Labs (PortSwigger, crAPI, VAmPI, DVGA), reading list, hunters to follow, wordlists, printable checklist
+- **09 — Writing the Report** &nbsp; Structure, **CVSS 3.1 + 4.0 worked vectors** (VC/VI/VA + SC/SI/SA, the new AT metric), triager-pushback pre-emption, 2024-2026 bounty ranges
+- **10 — Practice & Resources** &nbsp; Labs (PortSwigger, crAPI, VAmPI, DVGA), reading list (Hacking APIs, OWASP GraphQL cheat sheet, GraphQL Threat Matrix, RFC 9562), hunters to follow, wordlists, printable checklist
 
 ## What's New in This Version
 
-- **OWASP 2025-aligned.** Updated to reference OWASP Top 10:2025 (released as RC1 in November 2025), with the notable change that SSRF was rolled into A01 Broken Access Control. Confirms that OWASP API Security Top 10 is still the 2023 edition.
-- **AI-Assisted IDOR Hunting (Section 08).** A full section on where modern AI tooling helps the 2026 hunter — and where it actively breaks the workflow. Covers Caido Shift & Assistant, Burp AI, PentestGPT Agentic v1.0, the Cloudflare Glasswing multi-agent pattern (and the open-source `evilsocket/audit` reimplementation), AI prompt templates with safety caps, and a human-in-the-loop workflow checklist.
-- **Modern bypass catalog.** Unicode/whitespace path tricks, type confusion, parameter pollution variants, header-based bypasses, and version-downgrade endpoint hunting.
-- **2024-2026 disclosed reports cited.** Including HackerOne #291531, #1016122, #1064543, #1987489, and the August 2024 IDOR exposing 500K+ US passport scans.
-- **Polished, self-contained reading experience.** Copy-to-clipboard on every code block, active-section sidebar tracking, a collapsible mobile nav, a reading-progress bar, and back-to-top — plus full SEO/social metadata (Open Graph, Twitter cards, JSON-LD), an inline-SVG favicon, and accessibility passes (skip link, ARIA, `prefers-reduced-motion`). All in dependency-free vanilla JS. Now **MIT-licensed**.
+This revision (July 2026) is a deep expansion of every section — the goal is to be the most complete, technically-precise IDOR resource for bug hunters online. Highlights:
+
+- **A real taxonomy.** Section 00 now distinguishes **IDOR / BOLA (API1) / BOPLA (API3) / BFLA (API5)**, states the single anti-pattern behind all of them ("knowledge of an ID ≠ authorization"), backs it with the **RFC 9562 §6.9** citation you can quote at a triager, and includes a **CWE map** (639/566/285/284) plus the full OWASP Top 10:2025 lineup.
+- **The definitive ID-format section.** A rewritten guide ordered by *predictable portion*, with technically-accurate deep-dives on **MongoDB ObjectID** prediction (4-byte timestamp + 5-byte per-process value + 3-byte counter — and why one known ID collapses the space), the **UUIDv1 sandwich attack**, and the fact that **Hashids/Sqids are reversible obfuscation, not encryption**. Plus UUIDv7/ULID/KSUID/nanoid/Snowflake/Stripe/JWT/ETag.
+- **Source-map recon.** Section 01 adds `.js.map` reconstruction (`sourcemapper`, `unwebpack-sourcemap`) and a copy-paste recon pass (`gau`/`waymore`/`katana -kb-endpoints`/`jsluice`/`arjun`).
+- **Sharper methodology.** The **three-identity test** (owner / other user / unauthenticated), an Autorize vs Auth Analyzer vs AuthMatrix comparison (with the Caido `autorize`/`authmatrix`/`authswap` plugins), **blind-IDOR** detection via side effects, and swap-and-revert verification.
+- **Modern GraphQL.** The **Relay `node()` back door**, **directive deception** (fragment-based `@auth` bypass), `graphw00f` + `Clairvoyance` schema recovery, and the **APQ-vs-safelisting** distinction that many hunters get wrong.
+- **New bypasses.** Send the ID in two places at once, and read 401/403/404/200 as an **oracle**.
+- **CVSS 3.1 *and* 4.0.** Section 09 adds worked v4.0 vectors — the **VC/VI/VA + SC/SI/SA** split and the new **AT (Attack Requirements)** metric — plus a note that HackerOne added CVSS 4.0 support in March 2025.
+- **Grounded AI section.** Corrects the multi-agent attribution (the swarm pattern is best studied via the open-source `evilsocket/audit`; **Project Glasswing was an industry research program, not a Cloudflare tool**), and adds the 2025-2026 autonomous-agent reality (**XBOW reached #1 on HackerOne's US leaderboard**; offense vs defender-side tools like ZeroPath).
+- **OWASP 2025-aligned.** OWASP Top 10:2025 (RC1, Nov 2025) with SSRF folded into A01; OWASP API Security Top 10 confirmed still 2023.
+- **Polished, self-contained reading experience.** Copy-to-clipboard on every code block, active-section sidebar tracking, a collapsible mobile nav, a reading-progress bar, and back-to-top — plus full SEO/social metadata (Open Graph, Twitter cards, JSON-LD), an inline-SVG favicon, and accessibility passes (skip link, ARIA, `prefers-reduced-motion`). All in dependency-free vanilla JS. **MIT-licensed**.
 
 ## Quick Start
 
@@ -73,13 +79,16 @@ The cheatsheet ships with a dedicated print stylesheet that flips the dark scree
 
 Built with material from:
 
-- **OWASP Top 10:2025** (RC1, November 2025) and **OWASP API Security Top 10:2023**
-- **PortSwigger Web Security Academy** — the foundational access-control labs
+- **OWASP Top 10:2025** (RC1, November 2025), **OWASP API Security Top 10:2023** (BOLA/BOPLA/BFLA), and the **OWASP GraphQL Cheat Sheet**
+- **RFC 9562** (the UUID specification) and **MITRE CWE** (639/566/285/284) for the format and weakness references
+- **FIRST CVSS v4.0** specification, and HackerOne's CVSS 4.0 support documentation
+- **PortSwigger Web Security Academy** — the foundational access-control, JWT, and GraphQL labs
 - **HackerOne Hacktivity** — disclosed reports including #291531, #1016122, #1064543, #1987489
-- **GraphQL alias-batching research** — Lorikeet Security, 0xrafasec, the GraphQL.org security guide
-- **Cloudflare Project Glasswing** and the `evilsocket/audit` open-source reimplementation for the multi-agent vulnerability discovery pattern
-- **Caido**, **PentestGPT**, **ZeroPath**, and **Chatio** documentation for the 2025-2026 AI tooling landscape
-- The broader bug bounty community's writeups (2024-2026)
+- **ID-prediction research & tooling** — `guidtool`/`uuidtool` and the sandwich attack (UUIDv1), `andresriancho/mongo-objectid-predict` (MongoDB ObjectID), and the Hashids/Sqids maintainers' own "not encryption" guidance
+- **GraphQL security research & tooling** — `graphw00f` + the GraphQL Threat Matrix, `Clairvoyance`, `graphql-cop`, `BatchQL`, and alias-batching writeups
+- **`evilsocket/audit`** as the studyable open-source example of the multi-agent ("swarm") vulnerability-discovery pattern
+- **Burp Suite**, **Caido**, **PentestGPT**, and **Chatio** documentation for the 2025-2026 tooling and AI landscape
+- The broader bug bounty community's writeups (2024-2026), including Sam Curry et al.'s automotive-portal access-control research
 
 ## Authorization & Ethics
 
