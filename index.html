@@ -956,7 +956,7 @@ tr:hover td { background: rgba(255, 255, 255, 0.02); }
   "author": { "@type": "Person", "name": "Nafiur Rahman Shafi", "url": "https://github.com/nrshafi" },
   "publisher": { "@type": "Organization", "name": "IDOR.guide" },
   "datePublished": "2026-01-01",
-  "dateModified": "2026-06-03",
+  "dateModified": "2026-07-05",
   "image": "https://nrshafi.github.io/idor-guide/og-image.png",
   "mainEntityOfPage": "https://nrshafi.github.io/idor-guide/",
   "keywords": "IDOR, BOLA, broken access control, bug bounty, API security, OWASP, GraphQL",
@@ -1028,7 +1028,7 @@ tr:hover td { background: rgba(255, 255, 255, 0.02); }
         <span class="dot"></span>
         <span>Updated 2026 · OWASP 2025-aligned</span>
         <span class="dot"></span>
-        <span>~55 min read</span>
+        <span>~70 min read</span>
       </div>
 
       <h1>IDOR&nbsp;Hunting<br><span class="accent">Zero&nbsp;to&nbsp;Advanced</span></h1>
@@ -1125,13 +1125,70 @@ tr:hover td { background: rgba(255, 255, 255, 0.02); }
       </p>
 
       <div class="callout info">
-        <div class="callout-title">// OWASP Top 10:2025 &middot; what's new</div>
-        <p>Two new categories: <strong>A03:2025 Software Supply Chain Failures</strong> and <strong>A10:2025 Mishandling of Exceptional Conditions</strong>. Security Misconfiguration jumped to #2. Insecure Design slid to #6. Authentication Failures kept the #7 slot with a slight rename. There's also an honorable-mention entry, <strong>X03:2025 Inappropriate Trust in AI Generated Code</strong> ("vibe coding") &mdash; relevant in section 08 below.</p>
+        <div class="callout-title">// OWASP Top 10:2025 &middot; the full lineup</div>
+        <p>Released as RC1 on 6 Nov 2025. The current ranking: <strong>A01 Broken Access Control</strong> (SSRF now folded in), A02 Security Misconfiguration, <strong>A03 Software Supply Chain Failures</strong> (new), A04 Cryptographic Failures, A05 Injection, A06 Insecure Design, A07 Authentication Failures, A08 Software or Data Integrity Failures, A09 Security Logging &amp; Alerting Failures, and <strong>A10 Mishandling of Exceptional Conditions</strong> (new). There's also an honorable-mention entry, <strong>X03:2025 Inappropriate Trust in AI Generated Code</strong> ("vibe coding") &mdash; relevant in section 08 below.</p>
       </div>
 
       <div class="callout info">
         <div class="callout-title">// Why programs pay for it</div>
         <p>IDOR is a server-side bug with zero user interaction, a working PoC fits in a single HTTP request, and the impact (PII exposure, account takeover, tenant isolation breach) is easy to demonstrate. Triage teams love it; that's why even "boring" horizontal IDOR routinely pays four figures and chained criticals hit five.</p>
+      </div>
+
+      <h3><span class="num">→</span>IDOR vs BOLA vs BOPLA vs BFLA</h3>
+      <p>
+        "IDOR" is the classic web-app term. The OWASP API Security Top 10:2023 split the same idea into three sharper categories, and knowing which one you've found makes your report land faster and stops triagers from downgrading it. Learn to name the exact shape:
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>What's unprotected</th><th>Concrete example</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="pill blue">BOLA</span> <span class="pill">API1:2023</span></td>
+              <td>The <strong>object as a whole</strong> — "can I touch <em>this record</em>?"</td>
+              <td><code>GET /invoices/<span class="tk-id">1002</span></code> returns another user's invoice. This is "IDOR" in the classic sense.</td>
+            </tr>
+            <tr>
+              <td><span class="pill amber">BOPLA</span> <span class="pill">API3:2023</span></td>
+              <td>Individual <strong>properties/fields</strong> — "can I read or set <em>this field</em>?"</td>
+              <td>Response leaks a hidden <code>ssn</code> field (excessive data exposure); or your <code>PATCH</code> body sets <code>role:&nbsp;"admin"</code> and the server accepts it (mass assignment).</td>
+            </tr>
+            <tr>
+              <td><span class="pill red">BFLA</span> <span class="pill">API5:2023</span></td>
+              <td>The <strong>function/endpoint</strong> — "am I allowed to <em>call this at all</em>?"</td>
+              <td>A regular user calls <code>DELETE /admin/users/<span class="tk-id">42</span></code>. This is vertical IDOR's API-shaped name.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-title">// One acronym worth remembering</div>
+        <p>BOPLA (API3:2023) is a <strong>merger</strong> of two older 2019 categories — <em>Excessive Data Exposure</em> (the API returns fields you shouldn't see) and <em>Mass Assignment</em> (the API accepts fields you shouldn't set). Both are property-level authorization failures, which is why they now live under one name. OWASP writes it out as "Broken Object <em>Property</em> Level Authorization"; "BOPLA" is community shorthand. See section 06 for mass-assignment hunting.</p>
+      </div>
+
+      <h3><span class="num">→</span>The one anti-pattern behind all of them</h3>
+      <p>
+        Every format in this guide — sequential integers, UUIDs, MongoDB ObjectIDs, hashids — fails the same way: the application treats <strong>knowledge of an identifier as proof of authorization</strong>. "You knew the ID, so you must be allowed to have it." That's the whole bug. No identifier format, however random, fixes a missing server-side ownership check — randomness only changes <em>how hard the ID is to obtain</em>, never whether the check exists.
+      </p>
+
+      <div class="callout pro">
+        <div class="callout-title">// The standard says so out loud</div>
+        <p>RFC 9562 (May 2024, the current UUID specification) states plainly in §6.9 that UUIDs "<strong>do not guarantee</strong> uniqueness, and <strong>MUST NOT be used</strong> as security capabilities" — i.e. an unguessable ID is not an access-control mechanism. When a program says "but the ID is a random UUID, so it's not exploitable," this is your citation: the spec authors themselves say don't rely on that.</p>
+      </div>
+
+      <h3><span class="num">→</span>The CWE map (for your reports)</h3>
+      <p>Cite the right weakness ID and your triager can classify the report in one read:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>CWE</th><th>Title</th><th>When to use it</th></tr></thead>
+          <tbody>
+            <tr><td><code>CWE-639</code></td><td>Authorization Bypass Through User-Controlled Key</td><td>The canonical IDOR/BOLA. Your default.</td></tr>
+            <tr><td><code>CWE-566</code></td><td>Authorization Bypass Through User-Controlled SQL Primary Key</td><td>IDOR where the ID is used directly as a DB primary key in a query.</td></tr>
+            <tr><td><code>CWE-285</code></td><td>Improper Authorization</td><td>The auth check is present but wrong. Good for BFLA.</td></tr>
+            <tr><td><code>CWE-284</code></td><td>Improper Access Control</td><td>The broad parent. Use when nothing narrower fits.</td></tr>
+          </tbody>
+        </table>
       </div>
 
       <h3><span class="num">→</span>Impact menu</h3>
@@ -1179,6 +1236,51 @@ tr:hover td { background: rgba(255, 255, 255, 0.02); }
         <li><strong>Check mobile.</strong> Decompile the Android APK (<code>apktool d app.apk</code>) and grep for base URLs and endpoint strings. Mobile clients routinely use endpoints the web app no longer references but which still ship full responses.</li>
       </ol>
 
+      <h3><span class="num">→</span>Mine the source maps (the highest-ROI recon trick)</h3>
+      <p>
+        Modern SPAs ship minified JavaScript, but many also ship the <code>.js.map</code> <strong>source maps</strong> next to it — the files browser devtools use to show original source while debugging. Left in production (extremely common), a source map hands you the app's <em>original, un-minified source tree</em>: every <code>fetch()</code> call site, internal endpoint path, parameter name, feature flag, and sometimes hardcoded config. Look for <code>//# sourceMappingURL=</code> at the bottom of each bundle, or just append <code>.map</code> to the bundle URL and see if it 200s.
+      </p>
+      <div class="code-block">
+        <div class="code-header"><span>Reconstruct the original source from a bundle</span><span class="code-header-tag">RECON</span></div>
+<pre><span class="tk-cmt"># Go: auto-detects sourceMappingURL, rebuilds the source tree</span>
+sourcemapper -url <span class="tk-str">https://target.com/static/js/main.abc123.js</span> -output ./src
+
+<span class="tk-cmt"># Python: --detect crawls the page's &lt;script&gt; tags and pulls every .map it finds</span>
+unwebpack-sourcemap.py --detect <span class="tk-str">https://target.com/</span> ./src
+
+<span class="tk-cmt"># then grep the recovered source for the IDOR-shaped surface</span>
+grep -rEho <span class="tk-str">"/api/[a-zA-Z0-9/_{}.-]+"</span> ./src | sort -u
+grep -rEon <span class="tk-str">"[a-zA-Z_]+(Id|_id|Uuid|Token|Key)"</span> ./src | sort -u</pre>
+      </div>
+
+      <h3><span class="num">→</span>A copy-paste recon pass</h3>
+      <p>A fast, repeatable sweep to enumerate the data-shaped surface. Scope every command to authorized targets only.</p>
+      <div class="code-block">
+        <div class="code-header"><span>Endpoint &amp; parameter enumeration</span><span class="code-header-tag">RECON</span></div>
+<pre><span class="tk-cmt"># 1. Every historical URL ever archived (Wayback, CommonCrawl, OTX, URLScan)</span>
+gau target.com | tee all-urls.txt
+waymore -i target.com -mode U            <span class="tk-cmt"># -mode R also downloads archived response BODIES</span>
+
+<span class="tk-cmt"># 2. Crawl live + classify the API surface (REST / GraphQL / SOAP)</span>
+katana -u https://target.com -jc -kf all -kb-endpoints -o katana.txt
+
+<span class="tk-cmt"># 3. Extract endpoints &amp; secrets from JS with a real parser (not regex)</span>
+cat js-urls.txt | jsluice urls | jq -r .url | sort -u
+cat js-urls.txt | jsluice secrets
+
+<span class="tk-cmt"># 4. Discover hidden ID-bearing parameters the UI never shows</span>
+arjun -u https://target.com/api/v2/account -m GET,POST-JSON
+
+<span class="tk-cmt"># 5. Probe common API-doc &amp; schema paths</span>
+ffuf -u https://target.com/FUZZ -w swagger-paths.txt \
+  -mc 200,401,403 -fs 0    <span class="tk-cmt"># /swagger.json /openapi.json /graphql /v2/api-docs …</span></pre>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-title">// Where API maps love to hide</div>
+        <p>Beyond <code>/swagger</code> and <code>/graphql</code>: leaked <strong>Postman collections</strong> (search <code>postman.com</code> for the brand), <code>.well-known/</code> manifests, exposed <code>/actuator/mappings</code> (Spring Boot), <code>/api/v*/schema</code> (DRF), CI artifacts, and <code>*.har</code> files committed to public repos. Each one is a pre-built list of every ID-bearing endpoint the developers use.</p>
+      </div>
+
       <div class="callout pro">
         <div class="callout-title">// Pro tip — recently-shipped features</div>
         <p>The newer the feature, the higher the IDOR probability. Watch the app's changelog, blog, release notes, and Twitter/X account. When a vendor announces "we just shipped team invites" — within 48 hours, hit every endpoint of that flow with two accounts.</p>
@@ -1213,49 +1315,119 @@ tr:hover td { background: rgba(255, 255, 255, 0.02); }
       </div>
 
       <h3><span class="num">→</span>ID format guide</h3>
-      <p>The format of the identifier shapes how you attack it:</p>
+      <p>The format of the identifier shapes how you attack it. The column that matters most is <strong>"predictable portion"</strong> — the part an attacker doesn't have to guess. Ordered roughly from easiest to hardest:</p>
 
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Format</th><th>Example</th><th>Attack approach</th></tr></thead>
+          <thead><tr><th>Format</th><th>Example</th><th>Predictable portion &amp; attack</th></tr></thead>
           <tbody>
             <tr>
-              <td><span class="pill green">Sequential int</span></td>
-              <td><code>1, 2, 3, ... 9847</code></td>
-              <td>Enumerate freely. Burp Intruder Numbers payload, or Turbo Intruder for speed.</td>
+              <td><span class="pill red">Sequential int</span></td>
+              <td><code>1, 2, 3, … 9847</code></td>
+              <td>100%. Enumerate freely — Intruder Numbers or Turbo Intruder. Highest visible ID also leaks total record count.</td>
             </tr>
             <tr>
-              <td><span class="pill amber">UUIDv1</span></td>
-              <td><code>6ba7b810-9dad-11d1-...</code></td>
-              <td>Contains a timestamp + MAC. <em>Predictable</em> if you have one sample from the same generator.</td>
+              <td><span class="pill red">Base64 int / JSON</span></td>
+              <td><code>SW52b2ljZToxMDQy</code></td>
+              <td>0 bits of security — reversible <em>encoding</em>, not encryption. Decode, enumerate, re-encode (see below).</td>
             </tr>
             <tr>
-              <td><span class="pill blue">UUIDv4</span></td>
-              <td><code>e8b0c2f0-3a4d-4f3a-...</code></td>
-              <td>Cryptographically random — direct enumeration fails. Hunt for leaks elsewhere (next subsection).</td>
+              <td><span class="pill red">Hashids / Sqids</span></td>
+              <td><code>NkK9dwLl2</code></td>
+              <td>Reversible obfuscation, not a hash. Leaked salt+alphabet ⇒ decode every ID. See the callout below.</td>
             </tr>
             <tr>
-              <td><span class="pill amber">Base64-encoded int</span></td>
-              <td><code>NDI=</code> (= "42")</td>
-              <td>Decode, enumerate, re-encode. Surprisingly frequent.</td>
+              <td><span class="pill red">MongoDB ObjectID</span></td>
+              <td><code>507f191e810c19729de860ea</code></td>
+              <td>Only ~24 bits truly vary per process. One known same-process ID collapses the rest. Deep-dive below.</td>
+            </tr>
+            <tr>
+              <td><span class="pill amber">UUIDv1 (time+MAC)</span></td>
+              <td><code>6ba7b810-9dad-<span class="tk-id">1</span>1d1-…</code></td>
+              <td>Timestamp + constant MAC/clock_seq. The <strong>sandwich attack</strong> brute-forces the timestamp window. Deep-dive below.</td>
+            </tr>
+            <tr>
+              <td><span class="pill amber">Snowflake (Twitter/Discord)</span></td>
+              <td><code>175928847299117063</code></td>
+              <td>ms timestamp + small worker/sequence bits. Public decoders exist; narrow to a few thousand candidates in a time window.</td>
+            </tr>
+            <tr>
+              <td><span class="pill amber">UUIDv7 / ULID / KSUID</span></td>
+              <td><code>018f7a1c-3e4b-<span class="tk-id">7</span>d21-…</code></td>
+              <td>48-bit ms timestamp is <em>non-secret</em>; 62–128 random bits remain. Not enumerable, but never use for secret tokens.</td>
             </tr>
             <tr>
               <td><span class="pill amber">Hash-shaped (MD5/SHA-1)</span></td>
-              <td><code>5d41402abc4b2a76b9719d911017c592</code></td>
-              <td>Often <code>md5(user_id)</code> or <code>md5(email)</code>. Try common inputs.</td>
+              <td><code>5d41402abc4b2a76…</code></td>
+              <td>Often <code>md5(user_id)</code> or <code>md5(email)</code>. Hash your own known values; try common inputs.</td>
             </tr>
             <tr>
-              <td><span class="pill green">Slug</span></td>
+              <td><span class="pill green">Slug / username</span></td>
               <td><code>/u/alice-johnson</code></td>
-              <td>Enumerate usernames from OSINT, comments, mentions, profiles.</td>
+              <td>Enumerate from OSINT, comments, mentions, member lists, <code>@</code>-handles.</td>
             </tr>
             <tr>
-              <td><span class="pill red">Snowflake / Twitter-style</span></td>
-              <td><code>1701234567890123456</code></td>
-              <td>Timestamp + machine ID + sequence. Predictable within tight time window.</td>
+              <td><span class="pill blue">UUIDv4 / nanoid / Stripe</span></td>
+              <td><code>f47ac10b-58cc-<span class="tk-id">4</span>372-…</code></td>
+              <td>119–126 random bits. Direct enumeration is hopeless — hunt for <em>leaks</em> instead (next subsection).</td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="callout warn">
+        <div class="callout-title">// Read the version nibble</div>
+        <p>For any UUID, the first character of the third group is the version: <code>…-<strong>1</strong>xxx-…</code> is time-based (attackable), <code>…-<strong>4</strong>xxx-…</code> is random, <code>…-<strong>7</strong>xxx-…</code> is timestamp-ordered. A <code>1</code> or <code>7</code> there is a signal to keep digging; a <code>4</code> means pivot to leak-hunting.</p>
+      </div>
+
+      <h4>MongoDB ObjectID — why "random-looking" isn't random</h4>
+      <p>
+        An ObjectID looks like 12 random bytes. It isn't. Per the current spec it's <strong>4-byte timestamp + 5-byte per-process value + 3-byte counter</strong>:
+      </p>
+      <div class="code-block">
+        <div class="code-header"><span>507f191e810c19729de860ea — decomposed</span><span class="code-header-tag">DECODE</span></div>
+<pre><span class="tk-id">507f191e</span>  <span class="tk-cmt"># 4 bytes — unix timestamp (seconds). NOT secret: you know ~when a record was made.</span>
+<span class="tk-id">810c19729d</span> <span class="tk-cmt"># 5 bytes — random per PROCESS. Constant for the whole server-process lifetime!</span>
+<span class="tk-id">e860ea</span>    <span class="tk-cmt"># 3 bytes — counter, +1 per ObjectID the process mints.</span></pre>
+      </div>
+      <p>
+        The trap: the 5-byte "random" middle is generated <em>once when the process starts</em>, not per document. So if you can grab <strong>any single ObjectID from the same server process</strong> — your own account's ID, one leaked in a response or error — you now know those 40 bits for <em>every</em> ObjectID that process creates. That leaves only a narrow timestamp window and a small counter delta to brute-force, turning a nominal 96-bit space into roughly 10³–10⁶ candidates. <code>andresriancho/mongo-objectid-predict</code> automates exactly this.
+      </p>
+
+      <h4>UUIDv1 &amp; the sandwich attack</h4>
+      <p>
+        A UUIDv1 is a 60-bit timestamp (100 ns ticks) + a clock sequence + the generator's 48-bit MAC address. The MAC is constant, and many libraries fix the clock sequence per process — so the only thing that changes between two UUIDs from the same server is the <em>timestamp</em>. The <strong>sandwich attack</strong> exploits this on flows where you can trigger UUID generation (e.g. password-reset tokens):
+      </p>
+      <ol class="bullet">
+        <li>Request a reset for <strong>your</strong> account → capture UUID <code>T1</code> (the "bottom slice").</li>
+        <li>Request a reset for the <strong>victim</strong> (or wait for their action) → their token is minted <em>between</em> your two requests.</li>
+        <li>Immediately request another reset for your account → capture UUID <code>T2</code> (the "top slice").</li>
+        <li>Every valid timestamp lies between <code>T1</code> and <code>T2</code>. Regenerate candidate UUIDs across that window and brute-force the reset link.</li>
+      </ol>
+      <p>Tools that do the regeneration: <code>guidtool</code>, <code>crazycat256/uuidtool</code>, and <code>Lupin-Holmes/sandwich</code>. This turned several 2024–2025 password-reset flows into full account takeovers.</p>
+
+      <div class="callout danger">
+        <div class="callout-title">// Hashids and Sqids are NOT encryption</div>
+        <p>Hashids (and its 2023 successor <strong>Sqids</strong>) encode integers into short strings like <code>NkK9dwLl2</code>. Their own maintainers say it outright: <em>"Do not use this as a security measure… Hashids is not an encryption library."</em> The "salt" is not a cryptographic secret — it just permutes the alphabet, and it's routinely hardcoded in client-side JS or public repos. Recover the salt+alphabet (or brute a short salt against one known plaintext/ciphertext pair) and you can decode <em>every</em> ID the app will ever issue — collapsing it straight back to sequential integers.</p>
+      </div>
+
+      <h4>Decode before you dismiss</h4>
+      <p>An opaque-looking token is often just an encoding. Before assuming an ID is unguessable, run it through the obvious decoders:</p>
+      <div class="code-block">
+        <div class="code-header"><span>Is it actually random, or just wrapped?</span><span class="code-header-tag">DECODE</span></div>
+<pre><span class="tk-cmt"># Base64 — GraphQL Relay global IDs love this shape</span>
+echo <span class="tk-str">'SW52b2ljZToxMDQy'</span> | base64 -d      <span class="tk-cmt"># → "Invoice:1042"  ⇒ try Invoice:1043</span>
+
+<span class="tk-cmt"># JWT — the payload is only base64, readable by anyone holding the token</span>
+echo <span class="tk-str">'&lt;jwt&gt;'</span> | cut -d. -f2 | base64 -d       <span class="tk-cmt"># reveals sub / tenant_id / role claims</span>
+jwt_tool <span class="tk-str">&lt;jwt&gt;</span> -T                          <span class="tk-cmt"># tamper claims; test alg:none &amp; weak-secret</span>
+
+<span class="tk-cmt"># Snowflake / ObjectID — decode the embedded timestamp to confirm the format</span></pre>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-title">// Don't forget the header IDs</div>
+        <p>Object references also live in <code>ETag</code> and <code>Last-Modified</code> headers. Apache's default <code>FileETag</code> encodes the file's <em>inode, size and mtime</em>; a leaked <code>Last-Modified</code> gives you the exact creation timestamp you need to narrow a UUIDv1/Snowflake/ObjectID window elsewhere in the same app.</p>
       </div>
 
       <h3><span class="num">→</span>Hunting "unguessable" IDs</h3>
@@ -1323,6 +1495,24 @@ Replace: <span class="tk-str">Authorization: Bearer eyJhbGciOi...&lt;ACCOUNT_A_T
         <p>Autorize compares response sizes/contents. "Bypassed" can fire on innocuous responses (e.g. generic 404 pages, public endpoints). Always manually verify the response actually contains victim data before reporting.</p>
       </div>
 
+      <p>Pick the right tool for the job — they are not interchangeable:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tool</th><th>Model</th><th>Best for</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Autorize</strong> (Burp)</td><td>Auto-replays each request under a low-priv session + unauth; 3-way compare.</td><td>Fast passive sweep while you browse. Your default.</td></tr>
+            <tr><td><strong>Auth Analyzer</strong> (Burp)</td><td>Extracts &amp; substitutes session tokens across <em>N</em> configured sessions in parallel.</td><td>Apps with 3+ roles, or CSRF-token/session refresh that Autorize chokes on.</td></tr>
+            <tr><td><strong>AuthMatrix</strong> (Burp)</td><td>Manual users × roles × requests grid you populate and re-run.</td><td>Structured, repeatable regression across a whole role matrix.</td></tr>
+            <tr><td><strong>Caido</strong> plugins</td><td><code>caido-community/autorize</code>, <code>/authmatrix</code>, <code>/authswap</code>.</td><td>Same workflows if Caido is your primary proxy — all actively maintained.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-title">// Always test three identities, not two</div>
+        <p>For every request, compare the response as (1) the owner, (2) a <em>different</em> authenticated user, and (3) <strong>fully unauthenticated</strong> (strip the cookie/token entirely). The third case catches endpoints that never check auth at all — the easiest, highest-severity IDORs — and they're the ones a strict two-account loop can miss.</p>
+      </div>
+
       <h3><span class="num">→</span>The minimum viable test request</h3>
       <p>What a vulnerable request/response pair looks like in practice:</p>
 
@@ -1363,6 +1553,21 @@ Replace: <span class="tk-str">Authorization: Bearer eyJhbGciOi...&lt;ACCOUNT_A_T
           <li><strong>DELETE</strong> — can you delete victim's resources?</li>
           <li><strong>OPTIONS</strong> — does the CORS preflight reveal allowed methods you didn't see in the UI?</li>
         </ul>
+      </div>
+
+      <h3><span class="num">→</span>Blind IDOR — when the response says nothing</h3>
+      <p>
+        Not every IDOR echoes the victim's data back. A <code>PATCH</code> or <code>DELETE</code> often returns a bland <code>200 {"success": true}</code> whether or not it touched a foreign object. This is <strong>blind IDOR</strong>, and you confirm it by observing the <em>side effect</em>, not the response:
+      </p>
+      <ul class="bullet">
+        <li><strong>Cross-check from the victim account.</strong> Fire the mutation as Account A against B's object, then log into B and confirm the change landed.</li>
+        <li><strong>Watch an out-of-band signal.</strong> Did the victim get a notification email? Did a webhook fire? Did an audit-log entry appear?</li>
+        <li><strong>Diff the timing / status.</strong> A real object often returns <code>200</code>/<code>204</code>; a non-existent one <code>404</code>. That difference alone is an existence oracle even when content is identical.</li>
+      </ul>
+
+      <div class="callout pro">
+        <div class="callout-title">// Verify like a triager will</div>
+        <p>Before you write it up, run the <strong>swap-and-revert</strong>: perform the action cross-account, confirm the effect, then undo it. Capture both accounts' state at each step. A finding you can toggle on and off on demand is one no triager can call a coincidence — and it's the difference between "informative" and "paid."</p>
       </div>
     </section>
 
@@ -1467,6 +1672,39 @@ Replace: <span class="tk-str">Authorization: Bearer eyJhbGciOi...&lt;ACCOUNT_A_T
         <li><strong>Export / report endpoints</strong> — <code>/export</code>, <code>/print</code>, <code>/pdf</code>, <code>/download</code> often skip the in-app auth layer</li>
       </ul>
 
+      <h3><span class="num">→</span>Send the ID in two places at once</h3>
+      <p>
+        A classic, still-paying bypass: the authorization middleware checks the ID in <em>one</em> location while the application handler reads it from <em>another</em>. Put your own ID where the check looks, and the victim's ID where the code actually reads. Try every pairing:
+      </p>
+      <div class="code-block">
+        <div class="code-header"><span>Location-mismatch bypass</span><span class="code-header-tag">FUZZ</span></div>
+<pre><span class="tk-cmt"># Auth check reads the path (SELF); handler trusts the body (victim)</span>
+<span class="tk-kw">POST</span> /api/users/<span class="tk-id">SELF</span>/update
+{"user_id": <span class="tk-id">7011</span>, "email": "attacker@evil.com"}
+
+<span class="tk-cmt"># Auth check reads the query; handler trusts the JSON</span>
+<span class="tk-kw">POST</span> /api/invoice?id=<span class="tk-id">SELF</span>
+{"id": <span class="tk-id">7011</span>}
+
+<span class="tk-cmt"># Header vs body — common in multi-tenant SaaS</span>
+<span class="tk-hdr">X-Account-Id</span>: <span class="tk-id">SELF</span>
+{"account_id": <span class="tk-id">7011</span>}</pre>
+      </div>
+
+      <h3><span class="num">→</span>Read the response codes as an oracle</h3>
+      <p>The <em>difference</em> between rejections tells you which control you're up against — and where to push:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Response</th><th>What it usually means</th><th>Your move</th></tr></thead>
+          <tbody>
+            <tr><td><code>401</code></td><td>Authentication missing/invalid — the endpoint never got to authorization.</td><td>Fix your session, then re-test authz.</td></tr>
+            <tr><td><code>403</code></td><td>Authenticated but denied — a check <em>fired</em>. The object usually <strong>exists</strong>.</td><td>Attack the check: verb, path, header, wrapping bypasses.</td></tr>
+            <tr><td><code>404</code> on a known-good ID</td><td>Sometimes a "polite 403" hiding existence.</td><td>Compare timing/body vs a true 404; a difference is an existence oracle.</td></tr>
+            <tr><td><code>200</code> but empty</td><td>Auth passed; filter stripped the data — or it's blind.</td><td>Check side effects (section 03) and try field-level GraphQL/BOPLA paths.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
       <div class="callout pro">
         <div class="callout-title">// Modern winner — Unicode &amp; whitespace</div>
         <p>Several 2024-2025 writeups documented bypasses using zero-width Unicode characters or trailing whitespace in path segments — <code>/api/users/7011%E2%80%8B</code> (zero-width space) or <code>/api/users/%097011</code> (tab character). The router strips them and routes the request; the WAF and auth middleware see a different path and let it through.</p>
@@ -1492,7 +1730,11 @@ Replace: <span class="tk-str">Authorization: Bearer eyJhbGciOi...&lt;ACCOUNT_A_T
 {"query": "{ __schema { types { name fields { name args { name type { name } } } } } }"}</pre>
       </div>
 
-      <p>If introspection is disabled, try <code>Clairvoyance</code> or <code>graphql-cop</code> — they reconstruct the schema from error messages and field suggestions.</p>
+      <p>Introspection disabled? It's hidden, not gone. Two moves recover most of it:</p>
+      <ul class="bullet">
+        <li><strong>Fingerprint the engine first.</strong> <code>graphw00f</code> identifies the server implementation (Apollo, Hasura, graphql-java, Yoga…) from its error-handling quirks, then cross-references the <em>GraphQL Threat Matrix</em> to tell you which defenses that engine ships by default and its known CVEs. Now you know what to expect.</li>
+        <li><strong>Recover the schema from typo hints.</strong> Most servers answer a wrong field name with <code>"Did you mean … ?"</code>. <code>Clairvoyance</code> brute-forces near-miss names, harvests those suggestions, and rebuilds the schema field-by-field — with introspection fully off. (Mitigation on the defender side is <code>blockFieldSuggestions</code>; when it's absent, this works.)</li>
+      </ul>
 
       <h3><span class="num">→</span>Field-level authorization gaps</h3>
       <p>Even when <code>query.user</code> enforces "you must be that user," nested fields (<code>user.orders</code>, <code>user.paymentMethods</code>) are <em>separate resolvers</em>. Developers often guard the top level and forget the leaves.</p>
@@ -1520,6 +1762,35 @@ Replace: <span class="tk-str">Authorization: Bearer eyJhbGciOi...&lt;ACCOUNT_A_T
 }</pre>
         </div>
       </div>
+
+      <h3><span class="num">→</span>The Relay <code>node()</code> back door</h3>
+      <p>
+        Schemas built on the Relay spec expose a generic <code>node(id: ID!)</code> query that returns <em>any</em> object implementing the <code>Node</code> interface. Developers often lock down the named query (<code>user(id)</code>) but forget that <code>node()</code> resolves to the <em>same object</em> through a different door — and the global ID is usually just <code>base64("User:7011")</code>. If the guarded query 403s, try the generic one:
+      </p>
+      <div class="code-block">
+        <div class="code-header"><span>Same object, unguarded path</span><span class="code-header-tag post">POST</span></div>
+<pre><span class="tk-kw">query</span> {
+  node(id: <span class="tk-str">"VXNlcjo3MDEx"</span>) {   <span class="tk-cmt"># base64("User:7011")</span>
+    ... on User { email phone }
+  }
+}</pre>
+      </div>
+      <p>This exact class was assigned CVEs in 2025 (e.g. API Platform's auto-generated <code>node</code> resolver). The lesson generalizes: <strong>enumerate every path that reaches an object, not just the one your client SDK uses.</strong></p>
+
+      <h3><span class="num">→</span>Directive deception (fragment bypass)</h3>
+      <p>
+        Custom auth directives like <code>@auth</code> are enforced by middleware that walks the query's syntax tree. Some implementations only check directives on fields written <em>directly</em> in the query and never recurse into <strong>fragments</strong>. Request the same protected field through an inline or named fragment and the check can be silently skipped:
+      </p>
+      <div class="code-block">
+        <div class="code-header"><span>Route the field through a fragment</span><span class="code-header-tag post">POST</span></div>
+<pre><span class="tk-kw">query</span> {
+  me {
+    ...leak            <span class="tk-cmt"># the @auth walker may never visit this node</span>
+  }
+}
+<span class="tk-kw">fragment</span> leak <span class="tk-kw">on</span> User { ssn internalNotes apiKey }</pre>
+      </div>
+      <p>Always test protected fields three ways — inline in the query, via an inline fragment (<code>... on Type</code>), and via a named fragment spread — because they are not guaranteed to be authorized identically.</p>
 
       <h3><span class="num">→</span>Alias-batched IDOR &amp; rate-limit bypass</h3>
       <p>This is the GraphQL primitive that turned modest IDORs into critical mass-extraction bugs. Aliases let you call the same resolver many times <em>in a single HTTP request</em>. Most rate limiters and lockouts count <em>requests</em>, not <em>resolver invocations</em>.</p>
@@ -1565,12 +1836,19 @@ Replace: <span class="tk-str">Authorization: Bearer eyJhbGciOi...&lt;ACCOUNT_A_T
       <h3><span class="num">→</span>Mutation IDOR</h3>
       <p>Read-side IDOR is the obvious case; mutations are where the money lives. Mutations that take a target ID — <code>updateUser</code>, <code>resetPassword</code>, <code>transferOwnership</code>, <code>deleteOrganization</code>, <code>setRole</code> — should be your top priority once introspection succeeds.</p>
 
+      <div class="callout warn">
+        <div class="callout-title">// "Persisted queries" ≠ a wall</div>
+        <p>If a target uses persisted queries, find out <em>which</em> kind. <strong>Automatic Persisted Queries (APQ)</strong> are a bandwidth optimization — the client can still register and run <em>any</em> new query; the GraphQL Yoga docs say it outright: "APQ do not provide any security features." Every technique above still applies. Only a true <strong>safelist / persisted-query list (PQL)</strong> — a fixed allowlist that rejects unknown queries — narrows the surface, and even then an allowlisted query with an ID argument can still be IDOR-vulnerable.</p>
+      </div>
+
       <div class="checklist">
         <div class="checklist-title">GraphQL IDOR checklist</div>
         <ul class="checklist-items">
-          <li><strong>Introspection</strong> — enabled in production? Schema dumpable?</li>
+          <li><strong>Fingerprint + schema</strong> — <code>graphw00f</code> the engine; if introspection is off, recover with <code>Clairvoyance</code></li>
           <li><strong>Per-query auth</strong> — every <code>Query.X</code> with an ID argument tested for horizontal IDOR</li>
           <li><strong>Nested resolvers</strong> — every traversal through relationships re-tested independently</li>
+          <li><strong>The <code>node()</code> back door</strong> — retry any blocked object through the generic Relay <code>node(id)</code> query</li>
+          <li><strong>Fragments</strong> — protected fields re-requested via inline &amp; named fragments (directive deception)</li>
           <li><strong>Aliasing</strong> — does sending 50 aliases of the same field execute 50 times?</li>
           <li><strong>Mutations</strong> — every <code>Mutation.X</code> taking a target ID tested with a foreign ID</li>
           <li><strong>Hidden / admin mutations</strong> — does a low-privilege session call an admin mutation and get a response other than auth-error?</li>
@@ -1598,6 +1876,22 @@ Replace: <span class="tk-str">Authorization: Bearer eyJhbGciOi...&lt;ACCOUNT_A_T
         <li><strong>IDOR + mass assignment.</strong> An object-update endpoint that accepts extra fields beyond what the frontend sends (<code>role: "admin"</code>, <code>tenant_id: 0</code>) and applies them.</li>
         <li><strong>IDOR + cache deception.</strong> An IDOR that produces a personalized response, combined with a cache that stores it under a public-looking URL — exposes one user's data to everyone.</li>
       </ul>
+
+      <div class="callout danger">
+        <div class="callout-title">// Real-world chain &middot; Kia web portal (2024)</div>
+        <p>Sam Curry and team disclosed an access-control chain in Kia's dealer/owner web portal where, given only a vehicle's <strong>VIN</strong>, an attacker could resolve the owner and remotely issue commands (locate, unlock, start) within seconds — bridging a web IDOR to physical-world impact across millions of vehicles. The takeaway: an ID you can read off a windshield became the key to someone else's car. Impact framing like that is what turns a "parameter swap" into a headline bounty.</p>
+      </div>
+
+      <h3><span class="num">→</span>Second-order (stored) IDOR</h3>
+      <p>
+        The dangerous ID isn't always the one in your request — sometimes you <em>plant</em> a foreign ID in step 1 and the server dereferences it with elevated trust in step 2. The first request looks harmless and passes validation; the authorization gap only fires later, in a different context.
+      </p>
+      <ul class="bullet">
+        <li><strong>Stored reference.</strong> Set <code>default_payment_id</code> or <code>avatar_file_id</code> to a victim's object; the value is accepted now and rendered/charged later under your session — or theirs.</li>
+        <li><strong>Async / job pipeline.</strong> Submit an export or report job referencing a foreign <code>report_id</code>; the worker runs with service-level privileges and never re-checks ownership.</li>
+        <li><strong>Import / bulk endpoints.</strong> CSV/JSON import rows that carry an <code>owner_id</code> or <code>org_id</code> field the per-row handler trusts.</li>
+      </ul>
+      <p>Test it by decoupling write from read: plant the foreign ID, then trigger the downstream action and watch whose data surfaces.</p>
 
       <h3><span class="num">→</span>Mass assignment overlap</h3>
       <p>Closely related to IDOR. The classic move: the frontend lets you edit <code>name</code> and <code>bio</code>; the API silently accepts <code>role</code>, <code>email_verified</code>, <code>tenant_id</code>, <code>is_admin</code>, or <code>password_hash</code> too. Always try adding fields the UI didn't send:</p>
@@ -1646,8 +1940,17 @@ Replace: <span class="tk-str">Authorization: Bearer eyJhbGciOi...&lt;ACCOUNT_A_T
         <li>Run the same two-account methodology against the discovered mobile endpoints</li>
       </ol>
 
-      <h3><span class="num">→</span>UUID prediction (when it works)</h3>
-      <p>UUIDv1 contains a 60-bit timestamp and the generating machine's MAC address. Given one known UUID from the same generator, an attacker can predict UUIDs created within a tight time window. The <code>guidtool</code> and <code>sandwich</code> projects do this automatically. UUIDv4 is genuine random; UUIDv7 (timestamp + random) is partially predictable but not in a useful way.</p>
+      <h3><span class="num">→</span>Predicting "random" server-generated IDs</h3>
+      <p>
+        When an ID is minted server-side, its <em>structure</em> is often your way in — no leak required. The two that pay in practice (full mechanics and tooling in <a href="#candidates">section 02</a>):
+      </p>
+      <ul class="bullet">
+        <li><strong>UUIDv1</strong> — timestamp + constant MAC/clock_seq. The <em>sandwich attack</em> brackets a victim token (e.g. a password reset) between two you generate and brute-forces the timestamps in between. Tools: <code>guidtool</code>, <code>uuidtool</code>, <code>sandwich</code>.</li>
+        <li><strong>MongoDB ObjectID</strong> — one known same-process ID fixes the 40 "random" bits; you brute a narrow timestamp + small counter offset. Tool: <code>mongo-objectid-predict</code>.</li>
+      </ul>
+      <p>
+        <strong>UUIDv4</strong> is genuinely random (2¹²² space) — abandon prediction, hunt for leaks. <strong>UUIDv7 / ULID / KSUID</strong> expose their creation timestamp but keep enough randomness to resist enumeration; their real weakness is being used where a <em>secret</em> was needed. Where prediction shines is <em>token</em> flows — password resets, email-verification, invite links — because there a predicted value is an instant account takeover, not just a read.
+      </p>
 
       <div class="callout warn">
         <div class="callout-title">// What's not in this section</div>
@@ -1671,6 +1974,11 @@ Replace: <span class="tk-str">Authorization: Bearer eyJhbGciOi...&lt;ACCOUNT_A_T
         <li><strong>Caido</strong> — Rust-based alternative that matured significantly through 2024-2025. Lighter, cleaner UI, decent extension ecosystem, free tier usable for most IDOR workflows. Many hunters now run Caido as primary and Burp on the side.</li>
       </ul>
 
+      <div class="callout info">
+        <div class="callout-title">// Caido's IDOR-relevant kit</div>
+        <p><strong>Replay</strong> (per-request edit/resend with history for A/B comparison), <strong>Automate</strong> (placeholder-driven brute-force/enumeration — its own tutorials ship an "IDOR Lab"), <strong>Match &amp; Replace</strong> (Rust-regex request rewriting for auto-swapping tokens), and <strong>Workflows</strong> (visual multi-step automation, e.g. a "refresh auth" flow). For access-control testing specifically, the community plugins <code>caido-community/autorize</code>, <code>/authmatrix</code>, and <code>/authswap</code> port the Burp workflows directly.</p>
+      </div>
+
       <h3><span class="num">→</span>Must-have Burp extensions for IDOR</h3>
       <div class="resources">
         <div class="res-card">
@@ -1689,9 +1997,9 @@ Replace: <span class="tk-str">Authorization: Bearer eyJhbGciOi...&lt;ACCOUNT_A_T
           <div class="res-card-desc">Discovers hidden headers and parameters by mass-fuzzing names. Frequently unearths the parameter that's actually vulnerable.</div>
         </div>
         <div class="res-card">
-          <div class="res-card-tag">// Extension &middot; GraphQL</div>
-          <div class="res-card-title">InQL / GraphQL Raider</div>
-          <div class="res-card-desc">Pulls schema via introspection, renders it browseably, generates test queries per type. Essential for GraphQL work.</div>
+          <div class="res-card-tag">// Extension &middot; Auth</div>
+          <div class="res-card-title">Auth Analyzer</div>
+          <div class="res-card-desc">Autorize's sibling — extracts and swaps session tokens across multiple configured sessions in parallel. Handles CSRF-token/session-refresh apps that trip up Autorize.</div>
         </div>
         <div class="res-card">
           <div class="res-card-tag">// Extension &middot; Logging</div>
@@ -1709,11 +2017,56 @@ Replace: <span class="tk-str">Authorization: Bearer eyJhbGciOi...&lt;ACCOUNT_A_T
       <ul class="bullet">
         <li><code>ffuf</code> — best-in-class HTTP fuzzer; use with SecLists wordlists for endpoint discovery and ID enumeration</li>
         <li><code>feroxbuster</code> — recursive content discovery, Rust-fast</li>
-        <li><code>arjun</code> — parameter discovery (hidden GET/POST/JSON parameters)</li>
-        <li><code>katana</code> — modern crawler from ProjectDiscovery; good at JS-rendered apps</li>
-        <li><code>nuclei</code> — template-driven scanner; community-contributed IDOR templates exist but they're shallow on their own. Useful for checking known patterns at scale.</li>
-        <li><code>jsluice</code> — extracts URLs, secrets, and endpoint strings from JavaScript bundles</li>
-        <li><code>Clairvoyance</code> / <code>graphql-cop</code> — GraphQL schema reconstruction when introspection is off</li>
+        <li><code>arjun</code> — parameter discovery; surfaces hidden ID-bearing params (<code>user_id</code>, <code>account</code>) the UI never sends</li>
+        <li><code>katana</code> — ProjectDiscovery crawler; <code>-kb-endpoints</code> classifies discovered requests as REST/GraphQL/SOAP</li>
+        <li><code>gau</code> / <code>waymore</code> — pull every archived URL (Wayback, CommonCrawl, OTX, URLScan); waymore also downloads the archived response <em>bodies</em></li>
+        <li><code>jsluice</code> — Bishop Fox's tool; extracts URLs, endpoints and secrets from JS using a real parser (not regex)</li>
+        <li><code>xnLinkFinder</code> / <code>SecretFinder</code> — endpoint &amp; secret extraction; ingests Burp/Caido/HAR exports directly</li>
+        <li><code>sourcemapper</code> / <code>unwebpack-sourcemap</code> — reconstruct original source (and its endpoints) from leaked <code>.js.map</code> files</li>
+        <li><code>bbot</code> — recursive OSINT/recon framework; expands the asset surface where IDORs can hide</li>
+        <li><code>nuclei</code> — template scanner. No official IDOR category (business logic resists generic templates), but its multi-request extract→replay DSL supports custom BOLA checks, and the native <code>-ai</code> flag drafts templates from a prompt</li>
+      </ul>
+
+      <h3><span class="num">→</span>GraphQL tooling</h3>
+      <div class="resources">
+        <div class="res-card">
+          <div class="res-card-tag">// GraphQL &middot; Recon</div>
+          <div class="res-card-title">InQL / GraphQL Raider</div>
+          <div class="res-card-desc">Burp extensions — introspect the schema, render it browseably, and generate one test query/mutation per type. Your starting point inside Burp.</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-tag">// GraphQL &middot; Fingerprint</div>
+          <div class="res-card-title">graphw00f</div>
+          <div class="res-card-desc">Identifies the GraphQL engine (Apollo, Hasura, Yoga…) from error quirks, then maps it to the GraphQL Threat Matrix's default-defenses/CVE list.</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-tag">// GraphQL &middot; Schema</div>
+          <div class="res-card-title">Clairvoyance</div>
+          <div class="res-card-desc">Rebuilds the schema with introspection disabled by harvesting "Did you mean…?" field-suggestion errors. Feeds InQL / Voyager / path-enum.</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-tag">// GraphQL &middot; Audit</div>
+          <div class="res-card-title">graphql-cop</div>
+          <div class="res-card-desc">Fast CI-friendly auditor — flags introspection, field suggestions, batching/alias DoS, CSRF, and debug leaks; reproduces each as a cURL command.</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-tag">// GraphQL &middot; Pathfind</div>
+          <div class="res-card-title">graphql-path-enum</div>
+          <div class="res-card-desc">Given a recovered schema, lists every query path that reaches a sensitive type — a direct map of routes to a target object for IDOR chasing.</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-tag">// GraphQL &middot; Batch</div>
+          <div class="res-card-title">BatchQL / CrackQL</div>
+          <div class="res-card-desc">Batching-attack auditors — detect alias/array batching and run batched brute-force (e.g. password/OTP spraying through a single request).</div>
+        </div>
+      </div>
+
+      <h3><span class="num">→</span>Mobile &amp; API tooling</h3>
+      <ul class="bullet">
+        <li><code>apktool</code> — decompile/rebuild APKs; inspect the manifest and repackage after patching</li>
+        <li><code>jadx</code> — decompile bytecode to readable Java/Kotlin to actually <em>read</em> the app's logic and find base URLs</li>
+        <li><code>Frida</code> — dynamic instrumentation for runtime hooks/pin-bypass. <span class="pill amber">2026 note</span> now on the fast-moving <strong>17.x</strong> line, which broke many older guides — expect version-pinning friction (<code>16.7.x</code> if a script needs it)</li>
+        <li><code>objection</code> — Frida-powered REPL; <code>android sslpinning disable</code> and <code>patchapk</code> to embed the gadget without a tethered server</li>
       </ul>
 
       <h3><span class="num">→</span>When to write a Python script</h3>
@@ -1823,8 +2176,8 @@ present in the source. Mark any uncertain inference with [?].
         </div>
       </div>
 
-      <h3><span class="num">→</span>The multi-agent pattern (Glasswing-style)</h3>
-      <p>The most credible 2026 research direction isn't "one big agent finds bugs." It's <em>many narrow agents that disagree</em>. Cloudflare's <strong>Project Glasswing</strong> (and open-source reimplementations like <code>evilsocket/audit</code>) ship an 8-stage pipeline:</p>
+      <h3><span class="num">→</span>The multi-agent pattern (swarm auditing)</h3>
+      <p>The most credible 2026 research direction isn't "one big agent finds bugs." It's <em>many narrow agents that disagree</em>. The open-source <code>evilsocket/audit</code> (built on the Claude Agent SDK, and inspired by 2025 industry research programs including Project Glasswing) is the clearest artifact to study — a multi-stage pipeline you can actually read:</p>
 
       <div class="code-block">
         <div class="code-header"><span>Multi-agent vuln-discovery pipeline</span><span class="code-header-tag">ARCH</span></div>
@@ -1843,6 +2196,11 @@ present in the source. Mark any uncertain inference with [?].
       <p>The key insight: <strong>asking the same model to find AND validate a bug is a recipe for false positives</strong>. Different models at the Hunt and Validate stages catch each other's confabulations. The reachability gate kills the largest false-positive class — "this looks buggy in isolation but no real request path reaches it."</p>
 
       <p>For solo hunters, the practical takeaway isn't running the full pipeline — it's <strong>splitting your AI workflow across two providers</strong>. Use one model to suggest IDOR candidates from an OpenAPI spec; paste the candidates into a different model and ask "argue why each of these is NOT vulnerable." The bugs that survive both passes are the ones worth testing manually.</p>
+
+      <div class="callout info">
+        <div class="callout-title">// The 2025-2026 autonomous-agent reality</div>
+        <p><strong>XBOW</strong>, an autonomous pentesting agent, reached <strong>#1 on HackerOne's US leaderboard</strong> in mid-2025 — proof that agents already find real, paid bugs at scale (BOLA/IDOR among them, since it's so pattern-driven). But keep the categories straight: XBOW and PentestGPT are <em>offensive</em> agents, whereas tools like <strong>ZeroPath</strong> are <em>defender-side</em> SAST — useful to understand, but not something you point at someone else's live target. For a solo hunter the edge isn't out-competing the agents on volume; it's the business-logic judgment they still lack.</p>
+      </div>
 
       <h3><span class="num">→</span>AI for PoC scripting</h3>
       <p>This is the workflow that genuinely shaves hours per finding. Once you've manually proven a single-ID IDOR, ask an LLM to scaffold the enumeration script — with explicit safety constraints:</p>
@@ -1936,6 +2294,34 @@ Output a single .py file. No commentary.</pre>
         <li><strong>Suggested remediation.</strong> Brief. "Add a server-side check that <code>request.user.id == params['user_id']</code> or that the requesting user has admin privileges on the target's tenant." You're not consulting; you're being polite.</li>
       </ol>
 
+      <h3><span class="num">→</span>Scoring it: CVSS 3.1 and 4.0</h3>
+      <p>
+        Give a vector, not just a word. CVSS <strong>v4.0</strong> (published Nov 2023) is now live on HackerOne (added March 2025) — and it fits IDOR better than v3.1, so learn to produce both. The upgrade that matters: v3.1's single <code>Scope</code> flag is replaced by two impact triples — <strong>VC/VI/VA</strong> (the vulnerable system) and <strong>SC/SI/SA</strong> (any <em>subsequent</em> system dragged in), which is exactly the shape of a cross-tenant breach. v4.0 also adds <strong>AT (Attack Requirements)</strong>: <code>AT:N</code> for a trivial ID swap, <code>AT:P</code> when you first had to win a race or defeat a rate-limiter.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Scenario</th><th>CVSS 3.1</th><th>CVSS 4.0</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Horizontal read, full PII</td>
+              <td><code>AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N</code> → <strong>6.5 Medium</strong></td>
+              <td><code>AV:N/AC:L/AT:N/PR:L/UI:N/VC:H/VI:N/VA:N/SC:N/SI:N/SA:N</code></td>
+            </tr>
+            <tr>
+              <td>Cross-tenant read <em>and</em> write (SaaS)</td>
+              <td><code>AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:N</code> → <strong>9.4 Critical</strong></td>
+              <td><code>AV:N/AC:L/AT:N/PR:L/UI:N/VC:H/VI:H/VA:N/SC:H/SI:H/SA:N</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Prefix each with the version tag (<code>CVSS:3.1/…</code> or <code>CVSS:4.0/…</code>). In the cross-tenant row, <code>SC:H/SI:H</code> is doing the persuasion — it states in the vector itself that a <em>separate</em> tenant's confidentiality and integrity fell, which a single <code>S:C</code> toggle could never articulate.</p>
+
+      <div class="callout warn">
+        <div class="callout-title">// Expect to negotiate PR and Scope</div>
+        <p>Triagers most often push back on two metrics. <code>PR:L</code> (you needed an account) — argue <code>PR:N</code> if the endpoint is reachable unauthenticated. And Scope / Subsequent-System impact — this is where cross-tenant and IDOR→ATO chains earn their Critical, so justify it explicitly rather than leaving it implied.</p>
+      </div>
+
       <h3><span class="num">→</span>Common triager pushback &amp; how to pre-empt it</h3>
       <div class="table-wrap">
         <table>
@@ -1952,7 +2338,7 @@ Output a single .py file. No commentary.</pre>
       </div>
 
       <h3><span class="num">→</span>Bounty range expectations</h3>
-      <p>Rough 2024-2025 market on mid-tier private programs (your mileage varies wildly by program size, asset criticality, and chain depth):</p>
+      <p>Rough 2024-2026 market on mid-tier private programs (your mileage varies wildly by program size, asset criticality, and chain depth). Context worth knowing: Broken Access Control / IDOR has climbed to one of the top-earning and most-reported weakness classes across both HackerOne and Bugcrowd — you're hunting the category that pays out the most in aggregate, not a niche.</p>
       <div class="table-wrap">
         <table>
           <thead><tr><th>IDOR shape</th><th>Typical bounty</th></tr></thead>
@@ -2014,11 +2400,15 @@ Output a single .py file. No commentary.</pre>
 
       <h3><span class="num">→</span>Reading list</h3>
       <ul class="bullet">
-        <li><strong>OWASP API Security Top 10 (2023)</strong> — read the BOLA, BFLA, and Mass Assignment entries closely</li>
-        <li><strong>OWASP Web Security Testing Guide (WSTG)</strong> — particularly the API and GraphQL chapters</li>
-        <li><strong>PortSwigger Research blog</strong> — always worth reading; pioneered most modern web-bug techniques</li>
-        <li><strong>HackerOne Hacktivity</strong> — filter by "Improper Access Control" and "IDOR" weakness types; read 20 disclosed reports back-to-back</li>
-        <li><strong>Disclosed reports to study by name:</strong> H1 #291531 (GraphQL aliased IDOR PII), #1064543 (GitLab introspection → admin mutations), #1016122 (alias rate-limit bypass), #1987489 (BFLA mass enumeration)</li>
+        <li><strong>OWASP API Security Top 10 (2023)</strong> — read BOLA (API1), BOPLA (API3), and BFLA (API5) closely; they're the whole taxonomy</li>
+        <li><strong>OWASP Web Security Testing Guide (WSTG)</strong> — particularly the authorization, API, and GraphQL chapters</li>
+        <li><strong>OWASP GraphQL Cheat Sheet</strong> — the defender's checklist, read offensively (batching limits, field suggestions, introspection)</li>
+        <li><strong>"Hacking APIs"</strong> by Corey Ball — the current standard text for API/BOLA testing; pairs directly with crAPI</li>
+        <li><strong>PortSwigger Web Security Academy &amp; Research blog</strong> — the access-control/JWT/GraphQL topics, plus the research that pioneered most modern techniques</li>
+        <li><strong>GraphQL Threat Matrix</strong> — per-engine defense/CVE reference; the companion to <code>graphw00f</code></li>
+        <li><strong>RFC 9562 §6.9</strong> — the UUID spec's own "don't use these as security capabilities" clause; cite it when programs wave away UUID-based IDOR</li>
+        <li><strong>HackerOne Hacktivity</strong> — filter by "Improper Access Control" and "IDOR"; read 20 disclosed reports back-to-back</li>
+        <li><strong>Disclosed reports to study by name:</strong> H1 #291531 (GraphQL aliased IDOR PII), #1064543 (GitLab introspection → admin mutations), #1016122 (alias rate-limit bypass), #1987489 (BFLA mass enumeration); plus Sam Curry's automotive-portal writeups (web.archive-worthy)</li>
         <li><strong>"Web Application Hacker's Handbook 2"</strong> by Stuttard &amp; Pinto — dated in places but the access-control chapter is still essential reading</li>
       </ul>
 
@@ -2044,16 +2434,18 @@ Output a single .py file. No commentary.</pre>
       <div class="checklist">
         <div class="checklist-title">Print-and-tape-to-monitor edition</div>
         <ul class="checklist-items">
-          <li><strong>Two accounts</strong> live, both populated with distinguishable data</li>
-          <li><strong>Burp + Autorize</strong> running, second token configured</li>
-          <li>For every endpoint: <strong>swap the ID</strong>. Path, query, body, header, cookie.</li>
+          <li><strong>Two accounts</strong> live, both populated with distinguishable data (plus cross-tenant if the app allows it)</li>
+          <li><strong>Burp/Caido + Autorize</strong> running; test <strong>three identities</strong> — owner, other user, and fully unauthenticated</li>
+          <li><strong>Recon the surface</strong> — source maps (<code>.js.map</code>), archived URLs, Swagger/GraphQL, hidden params (arjun)</li>
+          <li>For every endpoint: <strong>swap the ID</strong>. Path, query, body, header, cookie, JWT claim.</li>
           <li>For every endpoint: <strong>swap the method</strong>. GET, POST, PUT, PATCH, DELETE, HEAD, FOO.</li>
-          <li>For every blocked endpoint: try the <strong>path-normalization variants</strong> (slash, dot, encoding, extension).</li>
-          <li>For every blocked endpoint: try the <strong>header-injection bypasses</strong> (X-Original-URL, X-Forwarded-For = 127.0.0.1).</li>
-          <li>For every parameter: try <strong>array, object, type-confused</strong> values.</li>
+          <li><strong>Decode the ID first</strong> — base64? hashid? MongoDB ObjectID? UUIDv1? Predict before you enumerate.</li>
+          <li>For every blocked endpoint: <strong>path-normalization</strong> (slash, dot, encoding, extension) + <strong>header bypasses</strong> (X-Original-URL, X-Forwarded-For=127.0.0.1).</li>
+          <li>For every blocked endpoint: send the <strong>ID in two places</strong> (self in path, victim in body) + <strong>array/object/type-confused</strong> values.</li>
           <li>For every UUID/random ID: hunt where it <strong>leaks publicly</strong> before giving up.</li>
-          <li><strong>GraphQL?</strong> Try introspection → aliased batch → nested fields → mutations.</li>
-          <li>Found one? <strong>Check the chain</strong> — does it enable ATO, mass extraction, cross-tenant?</li>
+          <li><strong>No data echoed?</strong> Check for <strong>blind IDOR</strong> via side effects and status-code oracles.</li>
+          <li><strong>GraphQL?</strong> Fingerprint → introspection/Clairvoyance → aliased batch → nested fields → <code>node()</code> → fragments → mutations.</li>
+          <li>Found one? <strong>Check the chain</strong> — ATO, mass extraction, cross-tenant, mass assignment? Score it in CVSS 4.0.</li>
         </ul>
       </div>
 
@@ -2070,7 +2462,7 @@ Output a single .py file. No commentary.</pre>
         <div class="footer-warn-title">// Authorization &middot; the only rule that matters</div>
         <p>Every technique in this guide is for use only against systems whose owners have <em>explicitly</em> authorized you to test — through a published bug bounty program, a vulnerability disclosure policy, or a written engagement scope. Out-of-scope testing is unauthorized access. The same word that describes the bug class also describes what you'd be doing without authorization.</p>
       </div>
-      <p>Built with sources from <strong>OWASP Top 10:2025 (RC1, Nov 2025)</strong>, OWASP API Security Top 10:2023, PortSwigger Web Security Academy, HackerOne Hacktivity disclosed reports (incl. #291531, #1016122, #1064543, #1987489), Lorikeet Security and 0xrafasec GraphQL alias-batching research, Cloudflare Project Glasswing &amp; <code>evilsocket/audit</code> on multi-agent vuln discovery, Caido / PentestGPT / ZeroPath / Chatio tooling docs, and bug bounty community writeups (2024-2026).</p>
+      <p>Built with sources from <strong>OWASP Top 10:2025 (RC1, Nov 2025)</strong>, OWASP API Security Top 10:2023 (BOLA/BOPLA/BFLA), the OWASP GraphQL Cheat Sheet, RFC 9562 (UUID), MITRE CWE-639/566/285/284, FIRST CVSS v4.0, PortSwigger Web Security Academy, HackerOne Hacktivity disclosed reports (incl. #291531, #1016122, #1064543, #1987489), GraphQL alias-batching research, the <code>evilsocket/audit</code> multi-agent auditing project, tooling docs for Burp / Caido / PentestGPT / graphw00f / Clairvoyance, and bug bounty community writeups (2024-2026).</p>
       <p style="margin-top: 12px; color: var(--text-muted); font-size: 12px;">// IDOR.guide &middot; v.2026 &middot; OWASP 2025-aligned &middot; for educational and authorized bug bounty use only</p>
     </footer>
 
